@@ -60,14 +60,10 @@ func (sm *SlippyMap) GetZoomLevel() (zoomLevel int) {
 
 func (sm *SlippyMap) Draw(screen *ebiten.Image) {
 	// draws all tiles onto screen
-	for i, t := range sm.tiles {
+	for _, t := range sm.tiles {
 		dio := &ebiten.DrawImageOptions{}
 		dio.GeoM.Translate(float64(t.offsetX), float64(t.offsetY))
 		screen.DrawImage(t.img, dio)
-
-		// debugging: draw tile number (for debugging, remove for prod)
-		dbgString := fmt.Sprintf("%d", i)
-		ebitenutil.DebugPrintAt(screen, dbgString, int(t.offsetX)+2, int(t.offsetY))
 	}
 }
 
@@ -118,20 +114,20 @@ func (sm *SlippyMap) makeTileAbove(existingTile *MapTile) (tileCreated bool) {
 	// makes the tile above existingTile, if it does not already exist or would be out of bounds
 
 	// check to see if tile above already exists
-	newTileOSMY := existingTile.osmY - 1
+	newTileOSMY := (*existingTile).osmY - 1
 	for _, t := range sm.tiles {
-		if t.osmY == newTileOSMY && t.osmX == existingTile.osmX {
+		if t.osmY == newTileOSMY && t.osmX == (*existingTile).osmX {
 			// the tile already exists, bail out
 			return false
 		}
 	}
 
-	newTileOffsetY := existingTile.offsetY - TILE_HEIGHT_PX
+	newTileOffsetY := (*existingTile).offsetY - TILE_HEIGHT_PX
 
 	// if the tile would not be out of bounds...
-	if sm.isOutOfBounds(existingTile.offsetX, newTileOffsetY) != true {
+	if sm.isOutOfBounds((*existingTile).offsetX, newTileOffsetY) != true {
 		// make the new tile
-		sm.makeTile(existingTile.osmX, newTileOSMY, existingTile.offsetX, newTileOffsetY)
+		sm.makeTile((*existingTile).osmX, newTileOSMY, (*existingTile).offsetX, newTileOffsetY)
 		return true
 	}
 	return false
@@ -141,20 +137,20 @@ func (sm *SlippyMap) makeTileBelow(existingTile *MapTile) (tileCreated bool) {
 	// makes the tile below existingTile, if it does not already exist or would be out of bounds
 
 	// check to see if tile below already exists
-	newTileOSMY := existingTile.osmY + 1
+	newTileOSMY := (*existingTile).osmY + 1
 	for _, t := range sm.tiles {
-		if t.osmY == newTileOSMY && t.osmX == existingTile.osmX {
+		if t.osmY == newTileOSMY && t.osmX == (*existingTile).osmX {
 			// the tile already exists, bail out
 			return false
 		}
 	}
 
-	newTileOffsetY := existingTile.offsetY + TILE_HEIGHT_PX
+	newTileOffsetY := (*existingTile).offsetY + TILE_HEIGHT_PX
 
 	// if the tile would not be out of bounds...
-	if sm.isOutOfBounds(existingTile.offsetX, newTileOffsetY) != true {
+	if sm.isOutOfBounds((*existingTile).offsetX, newTileOffsetY) != true {
 		// make the new tile
-		sm.makeTile(existingTile.osmX, newTileOSMY, existingTile.offsetX, newTileOffsetY)
+		sm.makeTile((*existingTile).osmX, newTileOSMY, (*existingTile).offsetX, newTileOffsetY)
 		return true
 	}
 	return false
@@ -164,20 +160,20 @@ func (sm *SlippyMap) makeTileToTheLeft(existingTile *MapTile) (tileCreated bool)
 	// makes the tile to the left of existingTile, if it does not already exist or would be out of bounds
 
 	// check to see if tile to the left already exists
-	newTileOSMX := existingTile.osmX - 1
+	newTileOSMX := (*existingTile).osmX - 1
 	for _, t := range sm.tiles {
-		if t.osmX == newTileOSMX && t.osmY == existingTile.osmY {
+		if t.osmX == newTileOSMX && t.osmY == (*existingTile).osmY {
 			// the tile already exists, bail out
 			return false
 		}
 	}
 
-	newTileOffsetX := existingTile.offsetX - TILE_WIDTH_PX
+	newTileOffsetX := (*existingTile).offsetX - TILE_WIDTH_PX
 
 	// if the tile would not be out of bounds...
-	if sm.isOutOfBounds(newTileOffsetX, existingTile.offsetY) != true {
+	if sm.isOutOfBounds(newTileOffsetX, (*existingTile).offsetY) != true {
 		// make the new tile
-		sm.makeTile(newTileOSMX, existingTile.osmY, newTileOffsetX, existingTile.offsetY)
+		sm.makeTile(newTileOSMX, (*existingTile).osmY, newTileOffsetX, (*existingTile).offsetY)
 		return true
 	}
 	return false
@@ -187,20 +183,20 @@ func (sm *SlippyMap) makeTileToTheRight(existingTile *MapTile) (tileCreated bool
 	// makes the tile to the right of existingTile, if it does not already exist or would be out of bounds
 
 	// check to see if tile to the right already exists
-	newTileOSMX := existingTile.osmX + 1
+	newTileOSMX := (*existingTile).osmX + 1
 	for _, t := range sm.tiles {
-		if t.osmX == newTileOSMX && t.osmY == existingTile.osmY {
+		if t.osmX == newTileOSMX && t.osmY == (*existingTile).osmY {
 			// the tile already exists, bail out
 			return false
 		}
 	}
 
-	newTileOffsetX := existingTile.offsetX + TILE_WIDTH_PX
+	newTileOffsetX := (*existingTile).offsetX + TILE_WIDTH_PX
 
 	// if the tile would not be out of bounds...
-	if sm.isOutOfBounds(newTileOffsetX, existingTile.offsetY) != true {
+	if sm.isOutOfBounds(newTileOffsetX, (*existingTile).offsetY) != true {
 		// make the new tile
-		sm.makeTile(newTileOSMX, existingTile.osmY, newTileOffsetX, existingTile.offsetY)
+		sm.makeTile(newTileOSMX, (*existingTile).osmY, newTileOffsetX, (*existingTile).offsetY)
 		return true
 	}
 	return false
