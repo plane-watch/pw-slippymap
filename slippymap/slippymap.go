@@ -1,4 +1,4 @@
-package maptiles
+package slippymap
 
 import (
 	"errors"
@@ -45,7 +45,7 @@ type SlippyMap struct {
 	offsetMaximumY      int           // maximum Y value for tiles
 	tileImageLoaderChan chan *MapTile // channel for loading of map tiles
 	placeholderArtwork  *ebiten.Image // placeholder artwork for tile
-	pathTileCache       string
+	pathTileCache       string        // path to cache on disk
 }
 
 func (sm *SlippyMap) GetZoomLevel() (zoomLevel int) {
@@ -266,12 +266,6 @@ func (sm *SlippyMap) makeTile(osmX, osmY, offsetX, offsetY int) {
 	}
 	t.img.DrawImage(img, nil)
 
-	// // add placeholder artwork
-	// t.img.DrawImage(sm.placeholderArtwork, nil)
-
-	// Add request to load the actual artwork
-	// sm.tileImageLoaderChan <- &t
-
 	// Add tile to slippymap
 	sm.tiles = append(sm.tiles, &t)
 }
@@ -353,7 +347,27 @@ func (sm *SlippyMap) GetLatLongAtPixel(x, y int) (lat_deg, long_deg float64, err
 
 }
 
-// func NewSlippyMap(mapWidthPx, mapHeightPx, zoomLevel int, centreLat, centreLong float64, tileImageLoaderChan chan *MapTile) (sm SlippyMap, err error) {
+func (sm *SlippyMap) LatLongToPixel(lat_deg, long_deg float64) (x, y int, err error) {
+	// return the pixel x/y for a given lat/long
+
+	// find the tile for the given lat/long
+	osmX, osmY, offsetX, offsetY := gpsCoordsToTileInfo(lat_deg, long_deg, sm.zoomLevel)
+
+	// find the tile on the slippymap
+	tileFound := false
+	for _, t := range sm.tiles {
+		if (*t).osmX == osmX && (*t).osmY == osmY {
+			tileFound = true
+			x = int(offsetX) + (*t).offsetX
+			y = int(offsetY) + (*t).offsetY
+			break
+		}
+	}
+	if tileFound != true {
+		return 0, 0, errors.New("Tile not found")
+	}
+	return x, y, nil
+}
 
 func NewSlippyMap(mapWidthPx, mapHeightPx, zoomLevel int, centreLat, centreLong float64, pathTileCache string) (sm SlippyMap, err error) {
 
@@ -389,36 +403,6 @@ func NewSlippyMap(mapWidthPx, mapHeightPx, zoomLevel int, centreLat, centreLong 
 	// return the slippymap
 	return sm, nil
 }
-
-// func TileImageLoader(pathTileCache string, tileImageLoaderChan chan *MapTile) {
-// 	// background loader for tile artwork
-// 	// designed to be run via goroutine
-// 	// reads load requests from channel tileImageLoaderChan
-// 	// reads/caches tiles in pathTileCache
-
-// 	// loop forever
-// 	for {
-
-// 		// pop a request off the channel
-// 		tile := <-tileImageLoaderChan
-
-// 		// download the image to cache if not in cache
-// 		tilePath, err := cacheTile((*tile).osmX, (*tile).osmY, (*tile).zoomLevel, pathTileCache)
-// 		if err != nil {
-// 			log.Fatal(err)
-// 		}
-
-// 		// load the image from cache
-// 		img, _, err := ebitenutil.NewImageFromFile(tilePath)
-// 		if err != nil {
-// 			log.Fatal(err)
-// 		}
-
-// 		// update the tile image
-// 		(*tile).img = img
-
-// 	}
-// }
 
 func getOSMTileURL(x, y, z int) (url string) {
 	// returns URL to open street map tile

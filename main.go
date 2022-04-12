@@ -7,7 +7,7 @@ import (
 	"os"
 	"path"
 	"pw_slippymap/localdata"
-	"pw_slippymap/maptiles"
+	"pw_slippymap/slippymap"
 
 	"github.com/hajimehoshi/ebiten/v2"
 	"github.com/hajimehoshi/ebiten/v2/ebitenutil"
@@ -21,7 +21,7 @@ const (
 )
 
 type Game struct {
-	slippymap *maptiles.SlippyMap // hold the slippymap within the "game" object
+	slippymap *slippymap.SlippyMap // hold the slippymap within the "game" object
 }
 
 type UserMouse struct {
@@ -163,15 +163,8 @@ func main() {
 	ebiten.SetWindowSize(windowWidth, windowHeight)
 	ebiten.SetWindowTitle("plane.watch")
 
-	// // initialise map: prepare channel for tile image loader requests
-	// tileImageLoaderChan := make(chan *maptiles.MapTile, 100)
-
-	// // initialise map: start tile image loader goroutine
-	// go maptiles.TileImageLoader(pathTileCache, tileImageLoaderChan)
-
 	// initialise map: initialise the new slippymap
-	// sm, err := maptiles.NewSlippyMap(windowWidth, windowHeight, INIT_ZOOM_LEVEL, INIT_CENTRE_LAT, INIT_CENTRE_LONG, tileImageLoaderChan)
-	sm, err := maptiles.NewSlippyMap(windowWidth, windowHeight, INIT_ZOOM_LEVEL, INIT_CENTRE_LAT, INIT_CENTRE_LONG, pathTileCache)
+	sm, err := slippymap.NewSlippyMap(windowWidth, windowHeight, INIT_ZOOM_LEVEL, INIT_CENTRE_LAT, INIT_CENTRE_LONG, pathTileCache)
 	if err != nil {
 		log.Fatal(err)
 	}
