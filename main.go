@@ -124,7 +124,7 @@ func main() {
 	ebiten.SetWindowTitle("plane.watch")
 
 	// initialise map: prepare channel for tile image loader requests
-	tileImageLoaderChan := make(chan maptiles.TileImageLoadRequest, 100)
+	tileImageLoaderChan := make(chan *maptiles.MapTile, 100)
 
 	// initialise map: start tile image loader goroutine
 	go maptiles.TileImageLoader(pathTileCache, tileImageLoaderChan)
