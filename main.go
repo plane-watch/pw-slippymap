@@ -17,8 +17,10 @@ import (
 const (
 	INIT_CENTRE_LAT  = -31.9523 // initial map centre lat
 	INIT_CENTRE_LONG = 115.8613 // initial map centre long
-	INIT_ZOOM_LEVEL  = 14       // initial OSM zoom level
+	INIT_ZOOM_LEVEL  = 9        // initial OSM zoom level
 	INIT_WINDOW_SIZE = 0.8      // percentage size of active screen
+	ZOOM_LEVEL_MAX   = 16       // maximum zoom level
+	ZOOM_LEVEL_MIN   = 2        // minimum zoom level
 )
 
 type Game struct {
@@ -56,11 +58,22 @@ var (
 
 func (g *Game) Update() error {
 
-	// zoom
+	// zoom: handle wheel
 	_, dy := ebiten.Wheel()
 	zoomLevel += dy / 4 // /4 to decrease sensitivity
+
+	// zoom: enforce limits
+	if zoomLevel > ZOOM_LEVEL_MAX {
+		zoomLevel = ZOOM_LEVEL_MAX
+	}
+	if zoomLevel < ZOOM_LEVEL_MIN {
+		zoomLevel = ZOOM_LEVEL_MIN
+	}
+
+	// zoom: do the zooming
 	if g.slippymap.GetZoomLevel() != int(math.Round(zoomLevel)) {
-		// initialise map: initialise the new slippymap
+
+		// zoom: initialise new slippymap centred on mouse pos
 		var sm slippymap.SlippyMap
 		ctLat, ctLong, err := g.slippymap.GetLatLongAtPixel(userMouse.currX, userMouse.currY)
 		if err != nil {

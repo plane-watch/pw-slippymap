@@ -133,6 +133,12 @@ func (sm *SlippyMap) makeTileAbove(existingTile *MapTile) (tileCreated bool) {
 
 	// check to see if tile above already exists
 	newTileOSMY := (*existingTile).osmY - 1
+
+	// honour edges of map
+	if newTileOSMY == -1 {
+		return false
+	}
+
 	for _, t := range sm.tiles {
 		if (*t).osmY == newTileOSMY && (*t).osmX == (*existingTile).osmX {
 			// the tile already exists, bail out
@@ -156,6 +162,12 @@ func (sm *SlippyMap) makeTileBelow(existingTile *MapTile) (tileCreated bool) {
 
 	// check to see if tile below already exists
 	newTileOSMY := (*existingTile).osmY + 1
+
+	// honour edges of map
+	if newTileOSMY == int(math.Pow(2, float64(sm.zoomLevel))) {
+		return false
+	}
+
 	for _, t := range sm.tiles {
 		if t.osmY == newTileOSMY && t.osmX == (*existingTile).osmX {
 			// the tile already exists, bail out
@@ -179,6 +191,12 @@ func (sm *SlippyMap) makeTileToTheLeft(existingTile *MapTile) (tileCreated bool)
 
 	// check to see if tile to the left already exists
 	newTileOSMX := (*existingTile).osmX - 1
+
+	// honour edges of map
+	if newTileOSMX == -1 {
+		return false
+	}
+
 	for _, t := range sm.tiles {
 		if t.osmX == newTileOSMX && t.osmY == (*existingTile).osmY {
 			// the tile already exists, bail out
@@ -202,6 +220,12 @@ func (sm *SlippyMap) makeTileToTheRight(existingTile *MapTile) (tileCreated bool
 
 	// check to see if tile to the right already exists
 	newTileOSMX := (*existingTile).osmX + 1
+
+	// honour edges of map
+	if newTileOSMX == int(math.Pow(2, float64(sm.zoomLevel))) {
+		return false
+	}
+
 	for _, t := range sm.tiles {
 		if t.osmX == newTileOSMX && t.osmY == (*existingTile).osmY {
 			// the tile already exists, bail out
