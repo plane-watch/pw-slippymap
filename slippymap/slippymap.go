@@ -478,7 +478,7 @@ func cacheTile(x, y, z int, pathTileCache string) (tilePath string, err error) {
 		}
 
 		// set the header (requirement for using osm)
-		req.Header.Set("User-Agent", "pw_slippymap/0.1 https://github.com/mikenye")
+		req.Header.Set("User-Agent", "pw_slippymap/0.1 https://github.com/plane-watch/pw-slippymap")
 
 		// get the data
 		resp, err := client.Do(req)
