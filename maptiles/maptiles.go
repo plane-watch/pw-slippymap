@@ -34,7 +34,7 @@ type MapTile struct {
 }
 
 type SlippyMap struct {
-	tiles               []MapTile     // map tiles
+	tiles               []*MapTile    // map tiles
 	mapWidthPx          int           // number of pixels wide
 	mapHeightPx         int           // number of pixels high
 	zoomLevel           int           // zoom level
@@ -55,12 +55,12 @@ func (sm *SlippyMap) Draw(screen *ebiten.Image) {
 	// draws all tiles onto screen
 	for _, t := range sm.tiles {
 		dio := &ebiten.DrawImageOptions{}
-		dio.GeoM.Translate(float64(t.offsetX), float64(t.offsetY))
-		screen.DrawImage(t.img, dio)
+		dio.GeoM.Translate(float64((*t).offsetX), float64((*t).offsetY))
+		screen.DrawImage((*t).img, dio)
 
 		// debugging: print the OSM tile X/Y/Z
-		dbgText := fmt.Sprintf("%d/%d/%d", t.osmX, t.osmY, t.zoomLevel)
-		ebitenutil.DebugPrintAt(screen, dbgText, t.offsetX, t.offsetY)
+		dbgText := fmt.Sprintf("%d/%d/%d", (*t).osmX, (*t).osmY, (*t).zoomLevel)
+		ebitenutil.DebugPrintAt(screen, dbgText, (*t).offsetX, (*t).offsetY)
 	}
 }
 
@@ -73,7 +73,7 @@ func (sm *SlippyMap) Update(deltaOffsetX, deltaOffsetY int, forceUpdate bool) {
 	// clean up tiles off the screen
 	for i, t := range sm.tiles {
 		// if tile is out of bounds, remove it from slice
-		if sm.isOutOfBounds(t.offsetX, t.offsetY) {
+		if sm.isOutOfBounds((*t).offsetX, (*t).offsetY) {
 			sm.tiles[i] = sm.tiles[len(sm.tiles)-1]
 			sm.tiles = sm.tiles[:len(sm.tiles)-1]
 			break
@@ -81,27 +81,27 @@ func (sm *SlippyMap) Update(deltaOffsetX, deltaOffsetY int, forceUpdate bool) {
 	}
 
 	// tile reposition
-	for i, t := range sm.tiles {
+	for _, t := range sm.tiles {
 		// update offset if required (ie, user is dragging the map around)
 		if (deltaOffsetX != 0 && deltaOffsetY != 0) || forceUpdate {
-			t.offsetX = t.offsetX + deltaOffsetX
-			t.offsetY = t.offsetY + deltaOffsetY
-			sm.tiles[i] = t
+			(*t).offsetX = (*t).offsetX + deltaOffsetX
+			(*t).offsetY = (*t).offsetY + deltaOffsetY
+			// sm.tiles[i] = (*t)
 		}
 	}
 
 	// new tiles created if required (just do one tile per update)
 	for _, t := range sm.tiles {
-		if sm.makeTileAbove(&t) {
+		if sm.makeTileAbove(t) {
 			break
 		}
-		if sm.makeTileToTheLeft(&t) {
+		if sm.makeTileToTheLeft(t) {
 			break
 		}
-		if sm.makeTileToTheRight(&t) {
+		if sm.makeTileToTheRight(t) {
 			break
 		}
-		if sm.makeTileBelow(&t) {
+		if sm.makeTileBelow(t) {
 			break
 		}
 	}
@@ -113,7 +113,7 @@ func (sm *SlippyMap) makeTileAbove(existingTile *MapTile) (tileCreated bool) {
 	// check to see if tile above already exists
 	newTileOSMY := (*existingTile).osmY - 1
 	for _, t := range sm.tiles {
-		if t.osmY == newTileOSMY && t.osmX == (*existingTile).osmX {
+		if (*t).osmY == newTileOSMY && (*t).osmX == (*existingTile).osmX {
 			// the tile already exists, bail out
 			return false
 		}
@@ -237,7 +237,7 @@ func (sm *SlippyMap) makeTile(osmX, osmY, offsetX, offsetY int) {
 	sm.tileImageLoaderChan <- &t
 
 	// Add tile to slippymap
-	sm.tiles = append(sm.tiles, t)
+	sm.tiles = append(sm.tiles, &t)
 }
 
 func NewSlippyMap(mapWidthPx, mapHeightPx, zoomLevel int, centreLat, centreLong float64, tileImageLoaderChan chan *MapTile) (sm SlippyMap, err error) {
@@ -257,10 +257,10 @@ func NewSlippyMap(mapWidthPx, mapHeightPx, zoomLevel int, centreLat, centreLong 
 		mapWidthPx:          mapWidthPx,
 		mapHeightPx:         mapHeightPx,
 		zoomLevel:           zoomLevel,
-		offsetMinimumX:      -(4 * TILE_WIDTH_PX),
-		offsetMinimumY:      -(4 * TILE_HEIGHT_PX),
-		offsetMaximumX:      mapWidthPx + (4 * TILE_WIDTH_PX),
-		offsetMaximumY:      mapHeightPx + (4 * TILE_HEIGHT_PX),
+		offsetMinimumX:      -(2 * TILE_WIDTH_PX),
+		offsetMinimumY:      -(2 * TILE_HEIGHT_PX),
+		offsetMaximumX:      mapWidthPx + (2 * TILE_WIDTH_PX),
+		offsetMaximumY:      mapHeightPx + (2 * TILE_HEIGHT_PX),
 		tileImageLoaderChan: tileImageLoaderChan,
 		placeholderArtwork:  img,
 	}
@@ -302,7 +302,8 @@ func TileImageLoader(pathTileCache string, tileImageLoaderChan chan *MapTile) {
 		}
 
 		// update the tile image
-		*tile.img = *img
+		(*tile).img = img
+
 	}
 }
 
