@@ -6,10 +6,7 @@ A [Slippy Map](https://wiki.openstreetmap.org/wiki/Slippy_Map) written in Go, ev
 
 * Loads as a desktop app and displays the slippy map in a window
 * You can pan around with the mouse by dragging
-
-## Issues
-
-* Sometimes tiles load the wrong artwork. Need help.
+* You can zoom with mouse wheel
 
 ## Future
 
