@@ -33,24 +33,17 @@ type MapTile struct {
 	offsetY   int           // top-right pixel location of tile
 }
 
-type TileImageLoadRequest struct {
-	img       *ebiten.Image
-	osmX      int
-	osmY      int
-	zoomLevel int
-}
-
 type SlippyMap struct {
-	tiles               []MapTile                 // map tiles
-	mapWidthPx          int                       // number of pixels wide
-	mapHeightPx         int                       // number of pixels high
-	zoomLevel           int                       // zoom level
-	offsetMinimumX      int                       // minimum X value for tiles
-	offsetMinimumY      int                       // minimum Y value for tiles
-	offsetMaximumX      int                       // maximum X value for tiles
-	offsetMaximumY      int                       // maximum Y value for tiles
-	tileImageLoaderChan chan TileImageLoadRequest // channel for loading of map tiles
-	placeholderArtwork  *ebiten.Image             // placeholder artwork for tile
+	tiles               []MapTile     // map tiles
+	mapWidthPx          int           // number of pixels wide
+	mapHeightPx         int           // number of pixels high
+	zoomLevel           int           // zoom level
+	offsetMinimumX      int           // minimum X value for tiles
+	offsetMinimumY      int           // minimum Y value for tiles
+	offsetMaximumX      int           // maximum X value for tiles
+	offsetMaximumY      int           // maximum Y value for tiles
+	tileImageLoaderChan chan *MapTile // channel for loading of map tiles
+	placeholderArtwork  *ebiten.Image // placeholder artwork for tile
 }
 
 func (sm *SlippyMap) GetZoomLevel() (zoomLevel int) {
@@ -64,6 +57,10 @@ func (sm *SlippyMap) Draw(screen *ebiten.Image) {
 		dio := &ebiten.DrawImageOptions{}
 		dio.GeoM.Translate(float64(t.offsetX), float64(t.offsetY))
 		screen.DrawImage(t.img, dio)
+
+		// debugging: print the OSM tile X/Y/Z
+		dbgText := fmt.Sprintf("%d/%d/%d", t.osmX, t.osmY, t.zoomLevel)
+		ebitenutil.DebugPrintAt(screen, dbgText, t.offsetX, t.offsetY)
 	}
 }
 
@@ -237,18 +234,13 @@ func (sm *SlippyMap) makeTile(osmX, osmY, offsetX, offsetY int) {
 	t.img.DrawImage(sm.placeholderArtwork, nil)
 
 	// Add request to load the actual artwork
-	sm.tileImageLoaderChan <- TileImageLoadRequest{
-		osmX:      osmX,
-		osmY:      osmY,
-		zoomLevel: sm.zoomLevel,
-		img:       t.img,
-	}
+	sm.tileImageLoaderChan <- &t
 
 	// Add tile to slippymap
 	sm.tiles = append(sm.tiles, t)
 }
 
-func NewSlippyMap(mapWidthPx, mapHeightPx, zoomLevel int, centreLat, centreLong float64, tileImageLoaderChan chan TileImageLoadRequest) (sm SlippyMap, err error) {
+func NewSlippyMap(mapWidthPx, mapHeightPx, zoomLevel int, centreLat, centreLong float64, tileImageLoaderChan chan *MapTile) (sm SlippyMap, err error) {
 
 	// load tile placeholder artwork
 	tilePath := path.Join("assets", "map_tile_not_loaded.png")
@@ -285,7 +277,7 @@ func NewSlippyMap(mapWidthPx, mapHeightPx, zoomLevel int, centreLat, centreLong 
 	return sm, nil
 }
 
-func TileImageLoader(pathTileCache string, tileImageLoaderChan chan TileImageLoadRequest) {
+func TileImageLoader(pathTileCache string, tileImageLoaderChan chan *MapTile) {
 	// background loader for tile artwork
 	// designed to be run via goroutine
 	// reads load requests from channel tileImageLoaderChan
@@ -295,10 +287,10 @@ func TileImageLoader(pathTileCache string, tileImageLoaderChan chan TileImageLoa
 	for {
 
 		// pop a request off the channel
-		req := <-tileImageLoaderChan
+		tile := <-tileImageLoaderChan
 
 		// download the image to cache if not in cache
-		tilePath, err := cacheTile(req.osmX, req.osmY, req.zoomLevel, pathTileCache)
+		tilePath, err := cacheTile((*tile).osmX, (*tile).osmY, (*tile).zoomLevel, pathTileCache)
 		if err != nil {
 			log.Fatal(err)
 		}
@@ -310,7 +302,7 @@ func TileImageLoader(pathTileCache string, tileImageLoaderChan chan TileImageLoa
 		}
 
 		// update the tile image
-		*req.img = *img
+		*tile.img = *img
 	}
 }
 
