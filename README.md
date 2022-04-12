@@ -19,6 +19,8 @@ A [Slippy Map](https://wiki.openstreetmap.org/wiki/Slippy_Map) written in Go, ev
 
 ## Running locally
 
+* Install prerequisites:
+  * Linux: `apt-get install libxcursor-dev libxrandr-dev libxinerama-dev libxi-dev`
 * Clone the repo
 * Change to the repo dir
 * `go run main.go`
