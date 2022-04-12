@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"image/color"
 	"log"
 	"os"
 	"path"
@@ -43,9 +44,11 @@ func (um *UserMouse) update(x, y int) {
 }
 
 var (
-	windowWidth  int
-	windowHeight int
-	userMouse    UserMouse
+	windowWidth          int
+	windowHeight         int
+	userMouse            UserMouse
+	dbgMouseOverTileText string
+	dbgMouseLatLongText  string
 )
 
 func (g *Game) Update() error {
@@ -71,6 +74,13 @@ func (g *Game) Draw(screen *ebiten.Image) {
 	// draw map
 	g.slippymap.Draw(screen)
 
+	// debugging: darken area with debug text
+	darkArea := ebiten.NewImage(240, 100)
+	darkArea.Fill(color.Black)
+	darkAreaDio := &ebiten.DrawImageOptions{}
+	darkAreaDio.ColorM.Scale(1, 1, 1, 0.65)
+	screen.DrawImage(darkArea, darkAreaDio)
+
 	// debugging: show fps
 	ebitenutil.DebugPrintAt(screen, fmt.Sprintf("TPS: %0.2f", ebiten.CurrentTPS()), 0, 0)
 
@@ -81,9 +91,39 @@ func (g *Game) Draw(screen *ebiten.Image) {
 	// debugging: show zoom level
 	dbgZoomLevelTxt := fmt.Sprintf("Zoom level: %d\n", g.slippymap.GetZoomLevel())
 	ebitenutil.DebugPrintAt(screen, dbgZoomLevelTxt, 0, 30)
+
+	// debugging: show tile moused over
+	ctX, ctY, ctZ, err := g.slippymap.GetTileAtPixel(userMouse.currX, userMouse.currY)
+	if err != nil {
+		dbgMouseOverTileText = "Mouse over no tile"
+	} else {
+		dbgMouseOverTileText = fmt.Sprintf("Mouse over tile: %d/%d/%d", ctX, ctY, ctZ)
+	}
+	ebitenutil.DebugPrintAt(screen, dbgMouseOverTileText, 0, 45)
+
+	// debugging: show lat/long under mouse
+	ctLat, ctLong, err := g.slippymap.GetLatLongAtPixel(userMouse.currX, userMouse.currY)
+	if err != nil {
+		dbgMouseLatLongText = "Mouse over no tile"
+	} else {
+		dbgMouseLatLongText = fmt.Sprintf("Mouse over lat/long: %.4f/%.4f", ctLat, ctLong)
+	}
+	ebitenutil.DebugPrintAt(screen, dbgMouseLatLongText, 0, 60)
+
+	// debugging: show number of tiles
+	dbgNumTilesText := fmt.Sprintf("Tiles rendered: %d", g.slippymap.GetNumTiles())
+	ebitenutil.DebugPrintAt(screen, dbgNumTilesText, 0, 75)
+
 }
 
 func (g *Game) Layout(outsideWidth, outsideHeight int) (screenWidth, screenHeight int) {
+
+	// set slippymap size if window size changed
+	smW, smH := g.slippymap.GetSize()
+	if outsideWidth != smW || outsideHeight != smH {
+		g.slippymap.SetSize(outsideWidth, outsideHeight)
+	}
+
 	// return window size
 	return ebiten.WindowSize()
 }
@@ -123,14 +163,15 @@ func main() {
 	ebiten.SetWindowSize(windowWidth, windowHeight)
 	ebiten.SetWindowTitle("plane.watch")
 
-	// initialise map: prepare channel for tile image loader requests
-	tileImageLoaderChan := make(chan *maptiles.MapTile, 100)
+	// // initialise map: prepare channel for tile image loader requests
+	// tileImageLoaderChan := make(chan *maptiles.MapTile, 100)
 
-	// initialise map: start tile image loader goroutine
-	go maptiles.TileImageLoader(pathTileCache, tileImageLoaderChan)
+	// // initialise map: start tile image loader goroutine
+	// go maptiles.TileImageLoader(pathTileCache, tileImageLoaderChan)
 
 	// initialise map: initialise the new slippymap
-	sm, err := maptiles.NewSlippyMap(windowWidth, windowHeight, INIT_ZOOM_LEVEL, INIT_CENTRE_LAT, INIT_CENTRE_LONG, tileImageLoaderChan)
+	// sm, err := maptiles.NewSlippyMap(windowWidth, windowHeight, INIT_ZOOM_LEVEL, INIT_CENTRE_LAT, INIT_CENTRE_LONG, tileImageLoaderChan)
+	sm, err := maptiles.NewSlippyMap(windowWidth, windowHeight, INIT_ZOOM_LEVEL, INIT_CENTRE_LAT, INIT_CENTRE_LONG, pathTileCache)
 	if err != nil {
 		log.Fatal(err)
 	}

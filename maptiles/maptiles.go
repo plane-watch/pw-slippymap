@@ -31,6 +31,7 @@ type MapTile struct {
 	img       *ebiten.Image // Image data
 	offsetX   int           // top-left pixel location of tile
 	offsetY   int           // top-right pixel location of tile
+	alpha     float64       // tile transparency (for fade-in)
 }
 
 type SlippyMap struct {
@@ -44,6 +45,7 @@ type SlippyMap struct {
 	offsetMaximumY      int           // maximum Y value for tiles
 	tileImageLoaderChan chan *MapTile // channel for loading of map tiles
 	placeholderArtwork  *ebiten.Image // placeholder artwork for tile
+	pathTileCache       string
 }
 
 func (sm *SlippyMap) GetZoomLevel() (zoomLevel int) {
@@ -51,11 +53,24 @@ func (sm *SlippyMap) GetZoomLevel() (zoomLevel int) {
 	return sm.zoomLevel
 }
 
+func (sm *SlippyMap) GetNumTiles() (numTiles int) {
+	// returns the number of tiles making up the slippymap
+	return len(sm.tiles)
+}
+
 func (sm *SlippyMap) Draw(screen *ebiten.Image) {
 	// draws all tiles onto screen
 	for _, t := range sm.tiles {
+
 		dio := &ebiten.DrawImageOptions{}
+
+		// move the image where it needs to be in the window
 		dio.GeoM.Translate(float64((*t).offsetX), float64((*t).offsetY))
+
+		// adjust transparency (for fade-in of tiles)
+		dio.ColorM.Scale(1, 1, 1, (*t).alpha)
+
+		// draw the tile
 		screen.DrawImage((*t).img, dio)
 
 		// debugging: print the OSM tile X/Y/Z
@@ -80,13 +95,19 @@ func (sm *SlippyMap) Update(deltaOffsetX, deltaOffsetY int, forceUpdate bool) {
 		}
 	}
 
-	// tile reposition
+	// tile reposition & alpha increase if needed
 	for _, t := range sm.tiles {
+
 		// update offset if required (ie, user is dragging the map around)
 		if (deltaOffsetX != 0 && deltaOffsetY != 0) || forceUpdate {
 			(*t).offsetX = (*t).offsetX + deltaOffsetX
 			(*t).offsetY = (*t).offsetY + deltaOffsetY
 			// sm.tiles[i] = (*t)
+		}
+
+		// increase alpha channel (for fade in, if needed)
+		if (*t).alpha < 1 {
+			(*t).alpha = (*t).alpha + 0.05
 		}
 	}
 
@@ -231,16 +252,110 @@ func (sm *SlippyMap) makeTile(osmX, osmY, offsetX, offsetY int) {
 		zoomLevel: sm.zoomLevel,
 		img:       ebiten.NewImage(TILE_WIDTH_PX, TILE_WIDTH_PX),
 	}
-	t.img.DrawImage(sm.placeholderArtwork, nil)
+
+	// get tile artwork
+	tilePath, err := cacheTile(osmX, osmY, sm.zoomLevel, sm.pathTileCache)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	// load the image from cache
+	img, _, err := ebitenutil.NewImageFromFile(tilePath)
+	if err != nil {
+		log.Fatal(err)
+	}
+	t.img.DrawImage(img, nil)
+
+	// // add placeholder artwork
+	// t.img.DrawImage(sm.placeholderArtwork, nil)
 
 	// Add request to load the actual artwork
-	sm.tileImageLoaderChan <- &t
+	// sm.tileImageLoaderChan <- &t
 
 	// Add tile to slippymap
 	sm.tiles = append(sm.tiles, &t)
 }
 
-func NewSlippyMap(mapWidthPx, mapHeightPx, zoomLevel int, centreLat, centreLong float64, tileImageLoaderChan chan *MapTile) (sm SlippyMap, err error) {
+func (sm *SlippyMap) SetSize(mapWidthPx, mapHeightPx int) {
+	// updates the slippy map when window size is changed
+	sm.mapWidthPx = mapWidthPx
+	sm.mapHeightPx = mapHeightPx
+	sm.offsetMinimumX = -(2 * TILE_WIDTH_PX)
+	sm.offsetMinimumY = -(2 * TILE_HEIGHT_PX)
+	sm.offsetMaximumX = mapWidthPx + (2 * TILE_WIDTH_PX)
+	sm.offsetMaximumY = mapHeightPx + (2 * TILE_HEIGHT_PX)
+}
+
+func (sm *SlippyMap) GetSize() (mapWidthPx, mapHeightPx int) {
+	// return the slippymap size in pixels
+	return sm.mapWidthPx, sm.mapHeightPx
+}
+
+func (sm *SlippyMap) GetTileAtPixel(x, y int) (osmX, osmY, zoomLevel int, err error) {
+	// returns the OSM tile X/Y/Z at pixel position x,y
+	for _, t := range sm.tiles {
+		if x >= (*t).offsetX && x < (*t).offsetX+TILE_WIDTH_PX {
+			if y >= (*t).offsetY && y < (*t).offsetY+TILE_HEIGHT_PX {
+				return (*t).osmX, (*t).osmY, (*t).zoomLevel, nil
+			}
+		}
+	}
+	return 0, 0, 0, errors.New("Tile not found")
+}
+
+func (sm *SlippyMap) GetLatLongAtPixel(x, y int) (lat_deg, long_deg float64, err error) {
+	// returns the lat/long at pixel x,y
+
+	// first get tile
+	osmX, osmY, zoomLevel, err := sm.GetTileAtPixel(x, y)
+	if err != nil {
+		return 0, 0, err
+	}
+
+	// find tile in slippymap
+	tileFound := false
+	var topLeftX, topLeftY int
+	for _, t := range sm.tiles {
+		if (*t).osmX == osmX && (*t).osmY == osmY && (*t).zoomLevel == zoomLevel {
+			tileFound = true
+			topLeftX = (*t).offsetX
+			topLeftY = (*t).offsetY
+			break
+		}
+	}
+
+	// raise err if tile not found
+	if tileFound != true {
+		return 0, 0, errors.New("Tile not found")
+	}
+
+	// get lat/long at top left corner of tile
+	topLeftLat, topLeftLong := tileXYZtoGpsCoords(osmX, osmY, zoomLevel)
+
+	// get lat/long of tile to the right
+	_, topLeftLongRight := tileXYZtoGpsCoords(osmX+1, osmY, zoomLevel)
+
+	// get lat/long of tile below
+	topLeftLatBelow, _ := tileXYZtoGpsCoords(osmX, osmY+1, zoomLevel)
+
+	// get lat/long degrees per pixel
+	latPerPixel := (topLeftLatBelow - topLeftLat) / (TILE_HEIGHT_PX + 1)
+	longPerPixel := (topLeftLongRight - topLeftLong) / (TILE_WIDTH_PX + 1)
+
+	// get pixel offset within tile
+	offsetX := x - topLeftX
+	offsetY := y - topLeftY
+
+	lat_deg = topLeftLat + (float64(offsetY) * latPerPixel)
+	long_deg = topLeftLong + (float64(offsetX) * longPerPixel)
+
+	return lat_deg, long_deg, nil
+
+}
+
+// func NewSlippyMap(mapWidthPx, mapHeightPx, zoomLevel int, centreLat, centreLong float64, tileImageLoaderChan chan *MapTile) (sm SlippyMap, err error) {
+
+func NewSlippyMap(mapWidthPx, mapHeightPx, zoomLevel int, centreLat, centreLong float64, pathTileCache string) (sm SlippyMap, err error) {
 
 	// load tile placeholder artwork
 	tilePath := path.Join("assets", "map_tile_not_loaded.png")
@@ -254,16 +369,14 @@ func NewSlippyMap(mapWidthPx, mapHeightPx, zoomLevel int, centreLat, centreLong 
 
 	// create a new SlippyMap to return
 	sm = SlippyMap{
-		mapWidthPx:          mapWidthPx,
-		mapHeightPx:         mapHeightPx,
-		zoomLevel:           zoomLevel,
-		offsetMinimumX:      -(2 * TILE_WIDTH_PX),
-		offsetMinimumY:      -(2 * TILE_HEIGHT_PX),
-		offsetMaximumX:      mapWidthPx + (2 * TILE_WIDTH_PX),
-		offsetMaximumY:      mapHeightPx + (2 * TILE_HEIGHT_PX),
-		tileImageLoaderChan: tileImageLoaderChan,
-		placeholderArtwork:  img,
+		zoomLevel: zoomLevel,
+		// tileImageLoaderChan: tileImageLoaderChan,
+		placeholderArtwork: img,
+		pathTileCache:      pathTileCache,
 	}
+
+	// update size
+	sm.SetSize(mapWidthPx, mapHeightPx)
 
 	// initialise the map with a centre tile
 	centreTileOffsetX := (mapWidthPx / 2) - int(pixelOffsetX)
@@ -277,35 +390,35 @@ func NewSlippyMap(mapWidthPx, mapHeightPx, zoomLevel int, centreLat, centreLong 
 	return sm, nil
 }
 
-func TileImageLoader(pathTileCache string, tileImageLoaderChan chan *MapTile) {
-	// background loader for tile artwork
-	// designed to be run via goroutine
-	// reads load requests from channel tileImageLoaderChan
-	// reads/caches tiles in pathTileCache
+// func TileImageLoader(pathTileCache string, tileImageLoaderChan chan *MapTile) {
+// 	// background loader for tile artwork
+// 	// designed to be run via goroutine
+// 	// reads load requests from channel tileImageLoaderChan
+// 	// reads/caches tiles in pathTileCache
 
-	// loop forever
-	for {
+// 	// loop forever
+// 	for {
 
-		// pop a request off the channel
-		tile := <-tileImageLoaderChan
+// 		// pop a request off the channel
+// 		tile := <-tileImageLoaderChan
 
-		// download the image to cache if not in cache
-		tilePath, err := cacheTile((*tile).osmX, (*tile).osmY, (*tile).zoomLevel, pathTileCache)
-		if err != nil {
-			log.Fatal(err)
-		}
+// 		// download the image to cache if not in cache
+// 		tilePath, err := cacheTile((*tile).osmX, (*tile).osmY, (*tile).zoomLevel, pathTileCache)
+// 		if err != nil {
+// 			log.Fatal(err)
+// 		}
 
-		// load the image from cache
-		img, _, err := ebitenutil.NewImageFromFile(tilePath)
-		if err != nil {
-			log.Fatal(err)
-		}
+// 		// load the image from cache
+// 		img, _, err := ebitenutil.NewImageFromFile(tilePath)
+// 		if err != nil {
+// 			log.Fatal(err)
+// 		}
 
-		// update the tile image
-		(*tile).img = img
+// 		// update the tile image
+// 		(*tile).img = img
 
-	}
-}
+// 	}
+// }
 
 func getOSMTileURL(x, y, z int) (url string) {
 	// returns URL to open street map tile
@@ -431,4 +544,12 @@ func gpsCoordsToTileInfo(lat_deg, long_deg float64, zoomLevel int) (tileX, tileY
 	pixelOffsetY = (y - math.Floor(y)) * TILE_HEIGHT_PX
 
 	return tileX, tileY, pixelOffsetX, pixelOffsetY
+}
+
+func tileXYZtoGpsCoords(x, y, z int) (topLeftLat, topLeftLong float64) {
+	// return the top left lat/long of a tile
+	n := float64(calcN(z))
+	topLeftLat = radiansToDegrees(math.Atan(math.Sinh(math.Pi * (1 - 2*float64(y)/n))))
+	topLeftLong = float64(x)/n*360.0 - 180.0
+	return topLeftLat, topLeftLong
 }
