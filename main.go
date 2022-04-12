@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"image/color"
 	"log"
+	"math"
 	"os"
 	"path"
 	"pw_slippymap/localdata"
@@ -44,14 +45,34 @@ func (um *UserMouse) update(x, y int) {
 }
 
 var (
+	zoomLevel            float64
 	windowWidth          int
 	windowHeight         int
 	userMouse            UserMouse
 	dbgMouseOverTileText string
 	dbgMouseLatLongText  string
+	pathTileCache        string
 )
 
 func (g *Game) Update() error {
+
+	// zoom
+	_, dy := ebiten.Wheel()
+	zoomLevel += dy / 4 // /4 to decrease sensitivity
+	if g.slippymap.GetZoomLevel() != int(math.Round(zoomLevel)) {
+		// initialise map: initialise the new slippymap
+		var sm slippymap.SlippyMap
+		ctLat, ctLong, err := g.slippymap.GetLatLongAtPixel(userMouse.currX, userMouse.currY)
+		if err != nil {
+			log.Print("Cannot zoom!")
+		} else {
+			sm, err = slippymap.NewSlippyMap(windowWidth, windowHeight, int(math.Round(zoomLevel)), ctLat, ctLong, pathTileCache)
+			if err != nil {
+				log.Fatal(err)
+			}
+		}
+		g.slippymap = &sm
+	}
 
 	// update the mouse cursor position
 	userMouse.update(ebiten.CursorPosition())
@@ -146,7 +167,7 @@ func main() {
 	}
 
 	// create directory structure $HOME/.plane.watch/tilecache if it doesn't exist
-	pathTileCache := path.Join(userHomeDir, ".plane.watch", "tilecache")
+	pathTileCache = path.Join(userHomeDir, ".plane.watch", "tilecache")
 	err = localdata.SetupTileCache(pathTileCache)
 	if err != nil {
 		log.Fatal(err)
@@ -162,6 +183,9 @@ func main() {
 	ebiten.SetWindowResizable(true)
 	ebiten.SetWindowSize(windowWidth, windowHeight)
 	ebiten.SetWindowTitle("plane.watch")
+
+	// initial zoom level
+	zoomLevel = INIT_ZOOM_LEVEL
 
 	// initialise map: initialise the new slippymap
 	sm, err := slippymap.NewSlippyMap(windowWidth, windowHeight, INIT_ZOOM_LEVEL, INIT_CENTRE_LAT, INIT_CENTRE_LONG, pathTileCache)
