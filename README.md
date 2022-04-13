@@ -10,9 +10,8 @@ A [Slippy Map](https://wiki.openstreetmap.org/wiki/Slippy_Map) written in Go, ev
 
 ## Future
 
-* Get zoom working
-* Make a function to return pixel x/y for a given lat/long (so we can put thing on the map)
-* Need to credit OSM somewhere
+* Get planes on map
+* Draw paths and stuff (polyline) on map
 
 ## Running locally
 
