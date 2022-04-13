@@ -108,6 +108,16 @@ func (g *Game) Draw(screen *ebiten.Image) {
 	// draw map
 	g.slippymap.Draw(screen)
 
+	// osm attribution
+	windowX, windowY := g.slippymap.GetSize()
+	attributionArea := ebiten.NewImage(100, 20)
+	attributionArea.Fill(color.Black)
+	attributionAreaDio := &ebiten.DrawImageOptions{}
+	attributionAreaDio.ColorM.Scale(1, 1, 1, 0.65)
+	attributionAreaDio.GeoM.Translate(float64(windowX-100), float64(windowY-20))
+	screen.DrawImage(attributionArea, attributionAreaDio)
+	ebitenutil.DebugPrintAt(screen, "© OpenStreetMap", windowX-96, windowY-18)
+
 	// debugging: darken area with debug text
 	darkArea := ebiten.NewImage(240, 100)
 	darkArea.Fill(color.Black)
