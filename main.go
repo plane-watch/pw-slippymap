@@ -15,12 +15,13 @@ import (
 )
 
 const (
-	INIT_CENTRE_LAT  = -31.9523 // initial map centre lat
-	INIT_CENTRE_LONG = 115.8613 // initial map centre long
-	INIT_ZOOM_LEVEL  = 9        // initial OSM zoom level
-	INIT_WINDOW_SIZE = 0.8      // percentage size of active screen
-	ZOOM_LEVEL_MAX   = 16       // maximum zoom level
-	ZOOM_LEVEL_MIN   = 2        // minimum zoom level
+	INIT_CENTRE_LAT     = -31.9523 // initial map centre lat
+	INIT_CENTRE_LONG    = 115.8613 // initial map centre long
+	INIT_ZOOM_LEVEL     = 9        // initial OSM zoom level
+	INIT_WINDOW_SIZE    = 0.8      // percentage size of active screen
+	ZOOM_LEVEL_MAX      = 16       // maximum zoom level
+	ZOOM_LEVEL_MIN      = 2        // minimum zoom level
+	ZOOM_COOLDOWN_TICKS = 5        // number of ticks to wait between zoom in/out ops
 )
 
 type Game struct {
@@ -48,6 +49,7 @@ func (um *UserMouse) update(x, y int) {
 
 var (
 	zoomLevel            float64
+	zoomCoolDown         int
 	windowWidth          int
 	windowHeight         int
 	userMouse            UserMouse
@@ -60,7 +62,18 @@ func (g *Game) Update() error {
 
 	// zoom: handle wheel
 	_, dy := ebiten.Wheel()
-	zoomLevel += dy / 4 // /4 to decrease sensitivity
+
+	if zoomCoolDown == 0 {
+		if dy > 0 {
+			zoomLevel += 1
+			zoomCoolDown = ZOOM_COOLDOWN_TICKS
+		} else if dy < 0 {
+			zoomLevel -= 1
+			zoomCoolDown = ZOOM_COOLDOWN_TICKS
+		}
+	} else {
+		zoomCoolDown -= 1
+	}
 
 	// zoom: enforce limits
 	if zoomLevel > ZOOM_LEVEL_MAX {
@@ -207,8 +220,9 @@ func main() {
 	ebiten.SetWindowSize(windowWidth, windowHeight)
 	ebiten.SetWindowTitle("plane.watch")
 
-	// initial zoom level
+	// initial zoom level & zoom cooldown
 	zoomLevel = INIT_ZOOM_LEVEL
+	zoomCoolDown = 0
 
 	// initialise map: initialise the new slippymap
 	sm, err := slippymap.NewSlippyMap(windowWidth, windowHeight, INIT_ZOOM_LEVEL, INIT_CENTRE_LAT, INIT_CENTRE_LONG, pathTileCache)
