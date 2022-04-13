@@ -3,6 +3,7 @@ package slippymap
 import (
 	"errors"
 	"fmt"
+	"image/color"
 	_ "image/png"
 	"io"
 	"log"
@@ -10,6 +11,7 @@ import (
 	"net/http"
 	"os"
 	"path"
+	"sync"
 
 	"github.com/hajimehoshi/ebiten/v2"
 	"github.com/hajimehoshi/ebiten/v2/ebitenutil"
@@ -60,23 +62,28 @@ func (sm *SlippyMap) GetNumTiles() (numTiles int) {
 
 func (sm *SlippyMap) Draw(screen *ebiten.Image) {
 	// draws all tiles onto screen
-	for _, t := range sm.tiles {
+	wg := sync.WaitGroup{}
+	for _, tile := range sm.tiles {
+		wg.Add(1)
+		go func(t *MapTile) {
+			dio := &ebiten.DrawImageOptions{}
 
-		dio := &ebiten.DrawImageOptions{}
+			// move the image where it needs to be in the window
+			dio.GeoM.Translate(float64((*t).offsetX), float64((*t).offsetY))
 
-		// move the image where it needs to be in the window
-		dio.GeoM.Translate(float64((*t).offsetX), float64((*t).offsetY))
+			// adjust transparency (for fade-in of tiles)
+			dio.ColorM.Scale(1, 1, 1, (*t).alpha)
 
-		// adjust transparency (for fade-in of tiles)
-		dio.ColorM.Scale(1, 1, 1, (*t).alpha)
+			// draw the tile
+			screen.DrawImage(t.img, dio)
 
-		// draw the tile
-		screen.DrawImage((*t).img, dio)
-
-		// debugging: print the OSM tile X/Y/Z
-		dbgText := fmt.Sprintf("%d/%d/%d", (*t).osmX, (*t).osmY, (*t).zoomLevel)
-		ebitenutil.DebugPrintAt(screen, dbgText, (*t).offsetX, (*t).offsetY)
+			// debugging: print the OSM tile X/Y/Z
+			dbgText := fmt.Sprintf("%d/%d/%d", (*t).osmX, (*t).osmY, (*t).zoomLevel)
+			ebitenutil.DebugPrintAt(screen, dbgText, (*t).offsetX, (*t).offsetY)
+			wg.Done()
+		}(tile)
 	}
+	wg.Wait()
 }
 
 func (sm *SlippyMap) Update(deltaOffsetX, deltaOffsetY int, forceUpdate bool) {
@@ -96,34 +103,43 @@ func (sm *SlippyMap) Update(deltaOffsetX, deltaOffsetY int, forceUpdate bool) {
 	}
 
 	// tile reposition & alpha increase if needed
-	for _, t := range sm.tiles {
+	wgAlpha := sync.WaitGroup{}
+	for _, tile := range sm.tiles {
+		wgAlpha.Add(1)
+		go func(t *MapTile) {
+			// update offset if required (ie, user is dragging the map around)
+			if (deltaOffsetX != 0 && deltaOffsetY != 0) || forceUpdate {
+				t.offsetX = t.offsetX + deltaOffsetX
+				t.offsetY = t.offsetY + deltaOffsetY
+				// sm.tiles[i] = (*t)
+			}
 
-		// update offset if required (ie, user is dragging the map around)
-		if (deltaOffsetX != 0 && deltaOffsetY != 0) || forceUpdate {
-			(*t).offsetX = (*t).offsetX + deltaOffsetX
-			(*t).offsetY = (*t).offsetY + deltaOffsetY
-			// sm.tiles[i] = (*t)
-		}
-
-		// increase alpha channel (for fade in, if needed)
-		if (*t).alpha < 1 {
-			(*t).alpha = (*t).alpha + 0.05
-		}
+			// increase alpha channel (for fade in, if needed)
+			if (*t).alpha < 1 {
+				(*t).alpha = (*t).alpha + 0.05
+			}
+			wgAlpha.Done()
+		}(tile)
 	}
+	wgAlpha.Wait()
 
 	// new tiles created if required (just do one tile per update)
-	for _, t := range sm.tiles {
-		if sm.makeTileAbove(t) {
-			break
-		}
-		if sm.makeTileToTheLeft(t) {
-			break
-		}
-		if sm.makeTileToTheRight(t) {
-			break
-		}
-		if sm.makeTileBelow(t) {
-			break
+	makeAnother := true
+	for makeAnother {
+		makeAnother = false
+		for _, t := range sm.tiles {
+			if sm.makeTileAbove(t) {
+				makeAnother = true
+			}
+			if sm.makeTileToTheLeft(t) {
+				makeAnother = true
+			}
+			if sm.makeTileToTheRight(t) {
+				makeAnother = true
+			}
+			if sm.makeTileBelow(t) {
+				makeAnother = true
+			}
 		}
 	}
 }
@@ -276,19 +292,22 @@ func (sm *SlippyMap) makeTile(osmX, osmY, offsetX, offsetY int) {
 		zoomLevel: sm.zoomLevel,
 		img:       ebiten.NewImage(TILE_WIDTH_PX, TILE_WIDTH_PX),
 	}
+	t.img.Fill(color.Black)
 
-	// get tile artwork
-	tilePath, err := cacheTile(osmX, osmY, sm.zoomLevel, sm.pathTileCache)
-	if err != nil {
-		log.Fatal(err)
-	}
+	go func() {
+		// get tile artwork
+		tilePath, err := cacheTile(osmX, osmY, sm.zoomLevel, sm.pathTileCache)
+		if err != nil {
+			log.Fatal(err)
+		}
 
-	// load the image from cache
-	img, _, err := ebitenutil.NewImageFromFile(tilePath)
-	if err != nil {
-		log.Fatal(err)
-	}
-	t.img.DrawImage(img, nil)
+		// load the image from cache
+		img, _, err := ebitenutil.NewImageFromFile(tilePath)
+		if err != nil {
+			log.Fatal(err)
+		}
+		t.img.DrawImage(img, nil)
+	}()
 
 	// Add tile to slippymap
 	sm.tiles = append(sm.tiles, &t)
