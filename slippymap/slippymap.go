@@ -18,8 +18,11 @@ import (
 )
 
 const (
-	TILE_WIDTH_PX  = 256 // tile width (as-per https://wiki.openstreetmap.org/wiki/Slippy_map_tilenames)
-	TILE_HEIGHT_PX = 256 // tile height (as-per https://wiki.openstreetmap.org/wiki/Slippy_map_tilenames)
+	TILE_WIDTH_PX              = 256  // tile width (as-per https://wiki.openstreetmap.org/wiki/Slippy_map_tilenames)
+	TILE_HEIGHT_PX             = 256  // tile height (as-per https://wiki.openstreetmap.org/wiki/Slippy_map_tilenames)
+	ZOOM_LEVEL_MAX             = 16   // maximum zoom level
+	ZOOM_LEVEL_MIN             = 2    // minimum zoom level
+	TILE_FADEIN_ALPHA_PER_TICK = 0.05 // amount of alpha added per tick for tile fade-in
 )
 
 var (
@@ -37,17 +40,21 @@ type MapTile struct {
 }
 
 type SlippyMap struct {
-	tiles               []*MapTile    // map tiles
-	mapWidthPx          int           // number of pixels wide
-	mapHeightPx         int           // number of pixels high
-	zoomLevel           int           // zoom level
-	offsetMinimumX      int           // minimum X value for tiles
-	offsetMinimumY      int           // minimum Y value for tiles
-	offsetMaximumX      int           // maximum X value for tiles
-	offsetMaximumY      int           // maximum Y value for tiles
-	tileImageLoaderChan chan *MapTile // channel for loading of map tiles
-	placeholderArtwork  *ebiten.Image // placeholder artwork for tile
-	pathTileCache       string        // path to cache on disk
+	tiles []*MapTile // map tiles
+
+	mapWidthPx  int // number of pixels wide
+	mapHeightPx int // number of pixels high
+
+	zoomLevel        int           // zoom level
+	zoomPrevLevelImg *ebiten.Image // holds the previous zoom level's image
+
+	offsetMinimumX int // minimum X value for map tiles
+	offsetMinimumY int // minimum Y value for map tiles
+	offsetMaximumX int // maximum X value for map tiles
+	offsetMaximumY int // maximum Y value for map tiles
+
+	placeholderArtwork *ebiten.Image // placeholder artwork for map tile
+	pathTileCache      string        // path to cache on disk
 }
 
 func (sm *SlippyMap) GetZoomLevel() (zoomLevel int) {
@@ -61,8 +68,14 @@ func (sm *SlippyMap) GetNumTiles() (numTiles int) {
 }
 
 func (sm *SlippyMap) Draw(screen *ebiten.Image) {
+
+	// draw the previous zoom level in the background so zooming fades nicely
+	// TODO: stretch this image so it looks like we're zooming in, new tiles will fade in over old ones
+	screen.DrawImage(sm.zoomPrevLevelImg, nil)
+
 	// draws all tiles onto screen
 	wg := sync.WaitGroup{}
+
 	for _, tile := range sm.tiles {
 		wg.Add(1)
 		go func(t *MapTile) {
@@ -116,7 +129,7 @@ func (sm *SlippyMap) Update(deltaOffsetX, deltaOffsetY int, forceUpdate bool) {
 
 			// increase alpha channel (for fade in, if needed)
 			if (*t).alpha < 1 {
-				(*t).alpha = (*t).alpha + 0.05
+				(*t).alpha = (*t).alpha + TILE_FADEIN_ALPHA_PER_TICK
 			}
 			wgAlpha.Done()
 		}(tile)
@@ -412,6 +425,39 @@ func (sm *SlippyMap) LatLongToPixel(lat_deg, long_deg float64) (x, y int, err er
 	return x, y, nil
 }
 
+func (sm *SlippyMap) ZoomIn(lat_deg, long_deg float64) (newsm SlippyMap, err error) {
+	// zoom in, with map centred on given lat/long (in degrees)
+	newsm, err = sm.SetZoomLevel(sm.zoomLevel+1, lat_deg, long_deg)
+	return newsm, err
+}
+
+func (sm *SlippyMap) ZoomOut(lat_deg, long_deg float64) (newsm SlippyMap, err error) {
+	// zoom in, with map centred on given lat/long (in degrees)
+	newsm, err = sm.SetZoomLevel(sm.zoomLevel-1, lat_deg, long_deg)
+	return newsm, err
+}
+
+func (sm *SlippyMap) SetZoomLevel(zoomLevel int, lat_deg, long_deg float64) (newsm SlippyMap, err error) {
+	// sets zoom level, with map centred on given lat/long (in degrees)
+
+	// ensure we're within ZOOM_LEVEL_MAX & ZOOM_LEVEL_MIN
+	if zoomLevel > ZOOM_LEVEL_MAX || zoomLevel < ZOOM_LEVEL_MIN {
+		return SlippyMap{}, errors.New("Requested zoom level unavailable")
+	}
+
+	// create a new slippymap centred on the requested lat/long, at the requested zoom level
+	newsm, err = NewSlippyMap(sm.mapWidthPx, sm.mapHeightPx, zoomLevel, lat_deg, long_deg, sm.pathTileCache)
+	if err != nil {
+		return SlippyMap{}, err
+	}
+
+	// copy the current map image into the zoom previous level background image
+	sm.Draw(newsm.zoomPrevLevelImg)
+
+	// return the new slippymap and no error
+	return newsm, nil
+}
+
 func NewSlippyMap(mapWidthPx, mapHeightPx, zoomLevel int, centreLat, centreLong float64, pathTileCache string) (sm SlippyMap, err error) {
 
 	// load tile placeholder artwork
@@ -426,8 +472,8 @@ func NewSlippyMap(mapWidthPx, mapHeightPx, zoomLevel int, centreLat, centreLong 
 
 	// create a new SlippyMap to return
 	sm = SlippyMap{
-		zoomLevel: zoomLevel,
-		// tileImageLoaderChan: tileImageLoaderChan,
+		zoomLevel:          zoomLevel,
+		zoomPrevLevelImg:   ebiten.NewImage(mapWidthPx, mapHeightPx),
 		placeholderArtwork: img,
 		pathTileCache:      pathTileCache,
 	}
