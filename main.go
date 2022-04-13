@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"image/color"
 	"log"
-	"math"
 	"os"
 	"path"
 	"pw_slippymap/localdata"
@@ -19,8 +18,6 @@ const (
 	INIT_CENTRE_LONG    = 115.8613 // initial map centre long
 	INIT_ZOOM_LEVEL     = 9        // initial OSM zoom level
 	INIT_WINDOW_SIZE    = 0.8      // percentage size of active screen
-	ZOOM_LEVEL_MAX      = 16       // maximum zoom level
-	ZOOM_LEVEL_MIN      = 2        // minimum zoom level
 	ZOOM_COOLDOWN_TICKS = 5        // number of ticks to wait between zoom in/out ops
 )
 
@@ -48,8 +45,7 @@ func (um *UserMouse) update(x, y int) {
 }
 
 var (
-	zoomLevel            float64
-	zoomCoolDown         int
+	zoomCoolDown         int = 0
 	windowWidth          int
 	windowHeight         int
 	userMouse            UserMouse
@@ -63,41 +59,37 @@ func (g *Game) Update() error {
 	// zoom: handle wheel
 	_, dy := ebiten.Wheel()
 
-	if zoomCoolDown == 0 {
-		if dy > 0 {
-			zoomLevel += 1
-			zoomCoolDown = ZOOM_COOLDOWN_TICKS
-		} else if dy < 0 {
-			zoomLevel -= 1
-			zoomCoolDown = ZOOM_COOLDOWN_TICKS
-		}
-	} else {
-		zoomCoolDown -= 1
-	}
+	// zoom: honour the cooldown (helps when doing the two-finger-scroll on a macbook touchpad) & trigger on mousewheel y-axis
+	if zoomCoolDown == 0 && dy != 0 {
 
-	// zoom: enforce limits
-	if zoomLevel > ZOOM_LEVEL_MAX {
-		zoomLevel = ZOOM_LEVEL_MAX
-	}
-	if zoomLevel < ZOOM_LEVEL_MIN {
-		zoomLevel = ZOOM_LEVEL_MIN
-	}
-
-	// zoom: do the zooming
-	if g.slippymap.GetZoomLevel() != int(math.Round(zoomLevel)) {
-
-		// zoom: initialise new slippymap centred on mouse pos
-		var sm slippymap.SlippyMap
+		// zoom: get mouse cursor lat/long
 		ctLat, ctLong, err := g.slippymap.GetLatLongAtPixel(userMouse.currX, userMouse.currY)
 		if err != nil {
-			log.Print("Cannot zoom!")
+			// if error getting mouse cursor lat/long, log.
+			log.Print("Cannot zoom")
 		} else {
-			sm, err = slippymap.NewSlippyMap(windowWidth, windowHeight, int(math.Round(zoomLevel)), ctLat, ctLong, pathTileCache)
+			// if no error getting mouse cursor lat/long, then do the zoom operation
+			var newsm slippymap.SlippyMap
+			var err error
+			if dy > 0 {
+				newsm, err = g.slippymap.ZoomIn(ctLat, ctLong)
+				zoomCoolDown = ZOOM_COOLDOWN_TICKS
+			} else if dy < 0 {
+				newsm, err = g.slippymap.ZoomOut(ctLat, ctLong)
+				zoomCoolDown = ZOOM_COOLDOWN_TICKS
+			}
 			if err != nil {
-				log.Fatal(err)
+				log.Print("Error zooming")
+			} else {
+				g.slippymap = &newsm
 			}
 		}
-		g.slippymap = &sm
+	} else {
+		// zoom: decrement zoom cool down counter to zero
+		zoomCoolDown -= 1
+		if zoomCoolDown < 0 {
+			zoomCoolDown = 0
+		}
 	}
 
 	// update the mouse cursor position
@@ -219,10 +211,6 @@ func main() {
 	ebiten.SetWindowResizable(true)
 	ebiten.SetWindowSize(windowWidth, windowHeight)
 	ebiten.SetWindowTitle("plane.watch")
-
-	// initial zoom level & zoom cooldown
-	zoomLevel = INIT_ZOOM_LEVEL
-	zoomCoolDown = 0
 
 	// initialise map: initialise the new slippymap
 	sm, err := slippymap.NewSlippyMap(windowWidth, windowHeight, INIT_ZOOM_LEVEL, INIT_CENTRE_LAT, INIT_CENTRE_LONG, pathTileCache)
