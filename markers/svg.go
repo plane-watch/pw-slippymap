@@ -92,9 +92,12 @@ func (svg *SVG) moveTo(d string, dx bool) (remaining_d string, err error) {
 
 	// if MoveToDX
 	if dx {
+		// fmt.Println("MoveToDx:", x, y)
 		x = svg.x + x
 		y = svg.y + y
 	}
+
+	// fmt.Println("MoveTo:", x, y)
 
 	// perform the path.MoveTo
 	svg.path.MoveTo(x, y)
@@ -114,6 +117,7 @@ func (svg *SVG) closePath() {
 
 	svg.x = svg.startx
 	svg.y = svg.starty
+	// fmt.Println("ClosePath")
 	svg.path.LineTo(svg.startx, svg.starty)
 }
 
@@ -143,7 +147,9 @@ func (svg *SVG) lineTo(d string, dx bool) (remaining_d string, err error) {
 		y = svg.y + y
 	}
 
-	// perform the path.MoveTo
+	// fmt.Println("LineTo:", x, y)
+
+	// perform the path.LineTo
 	svg.path.LineTo(x, y)
 
 	// update the current pen position
@@ -171,6 +177,8 @@ func (svg *SVG) vertLineTo(d string, dx bool) (remaining_d string, err error) {
 		y = svg.y + y
 	}
 
+	// fmt.Println("VertLineTo:", svg.x, y)
+
 	// perform the path command
 	svg.path.LineTo(svg.x, y)
 
@@ -197,6 +205,8 @@ func (svg *SVG) horizLineTo(d string, dx bool) (remaining_d string, err error) {
 	if dx {
 		x = svg.x + x
 	}
+
+	// fmt.Println("HorizLineTo:", x, svg.y)
 
 	// perform the path command
 	svg.path.LineTo(x, svg.y)
@@ -274,6 +284,8 @@ func (svg *SVG) cubicTo(d string, dx bool) (remaining_d string, err error) {
 		x = svg.x + x
 		y = svg.y + y
 	}
+
+	// fmt.Println("CubicTo:", x1, y1, x2, y2, x, y)
 
 	// perform the path.CubicTo
 	svg.path.CubicTo(x1, y1, x2, y2, x, y)
@@ -417,6 +429,7 @@ func PathFromSVG(path *vector.Path, d string) (err error) {
 	for len(d) > 0 {
 
 		// fmt.Println("---")
+		// fmt.Println(d)
 
 		// firstly attempt to consume command
 		// grab the last char from the regex match
@@ -506,7 +519,8 @@ func PathFromSVG(path *vector.Path, d string) (err error) {
 		if err != nil {
 			log.Fatal(err)
 		}
+
+		// fmt.Println("")
 	}
-	// log.Fatal("-")
 	return nil
 }
