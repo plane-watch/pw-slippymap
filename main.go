@@ -7,6 +7,7 @@ import (
 	"os"
 	"path"
 	"pw_slippymap/localdata"
+	"pw_slippymap/markers"
 	"pw_slippymap/slippymap"
 
 	"github.com/hajimehoshi/ebiten/v2"
@@ -56,53 +57,55 @@ var (
 
 func (g *Game) Update() error {
 
-	// zoom: handle wheel
-	_, dy := ebiten.Wheel()
+	// temporarily commented out lots of stuff just to play with SVG artwork.
 
-	// zoom: honour the cooldown (helps when doing the two-finger-scroll on a macbook touchpad) & trigger on mousewheel y-axis
-	if zoomCoolDown == 0 && dy != 0 {
+	// // zoom: handle wheel
+	// _, dy := ebiten.Wheel()
 
-		// zoom: get mouse cursor lat/long
-		ctLat, ctLong, err := g.slippymap.GetLatLongAtPixel(userMouse.currX, userMouse.currY)
-		if err != nil {
-			// if error getting mouse cursor lat/long, log.
-			log.Print("Cannot zoom")
-		} else {
-			// if no error getting mouse cursor lat/long, then do the zoom operation
-			var newsm slippymap.SlippyMap
-			var err error
-			if dy > 0 {
-				newsm, err = g.slippymap.ZoomIn(ctLat, ctLong)
-				zoomCoolDown = ZOOM_COOLDOWN_TICKS
-			} else if dy < 0 {
-				newsm, err = g.slippymap.ZoomOut(ctLat, ctLong)
-				zoomCoolDown = ZOOM_COOLDOWN_TICKS
-			}
-			if err != nil {
-				log.Print("Error zooming")
-			} else {
-				g.slippymap = &newsm
-			}
-		}
-	} else {
-		// zoom: decrement zoom cool down counter to zero
-		zoomCoolDown -= 1
-		if zoomCoolDown < 0 {
-			zoomCoolDown = 0
-		}
-	}
+	// // zoom: honour the cooldown (helps when doing the two-finger-scroll on a macbook touchpad) & trigger on mousewheel y-axis
+	// if zoomCoolDown == 0 && dy != 0 {
 
-	// update the mouse cursor position
-	userMouse.update(ebiten.CursorPosition())
+	// 	// zoom: get mouse cursor lat/long
+	// 	ctLat, ctLong, err := g.slippymap.GetLatLongAtPixel(userMouse.currX, userMouse.currY)
+	// 	if err != nil {
+	// 		// if error getting mouse cursor lat/long, log.
+	// 		log.Print("Cannot zoom")
+	// 	} else {
+	// 		// if no error getting mouse cursor lat/long, then do the zoom operation
+	// 		var newsm slippymap.SlippyMap
+	// 		var err error
+	// 		if dy > 0 {
+	// 			newsm, err = g.slippymap.ZoomIn(ctLat, ctLong)
+	// 			zoomCoolDown = ZOOM_COOLDOWN_TICKS
+	// 		} else if dy < 0 {
+	// 			newsm, err = g.slippymap.ZoomOut(ctLat, ctLong)
+	// 			zoomCoolDown = ZOOM_COOLDOWN_TICKS
+	// 		}
+	// 		if err != nil {
+	// 			log.Print("Error zooming")
+	// 		} else {
+	// 			g.slippymap = &newsm
+	// 		}
+	// 	}
+	// } else {
+	// 	// zoom: decrement zoom cool down counter to zero
+	// 	zoomCoolDown -= 1
+	// 	if zoomCoolDown < 0 {
+	// 		zoomCoolDown = 0
+	// 	}
+	// }
 
-	// handle dragging
-	if ebiten.IsMouseButtonPressed(ebiten.MouseButtonLeft) {
-		// update the map with the new offset
-		g.slippymap.Update(userMouse.offsetX, userMouse.offsetY, false)
-	} else {
-		// otherwise update with no offset
-		g.slippymap.Update(0, 0, false)
-	}
+	// // update the mouse cursor position
+	// userMouse.update(ebiten.CursorPosition())
+
+	// // handle dragging
+	// if ebiten.IsMouseButtonPressed(ebiten.MouseButtonLeft) {
+	// 	// update the map with the new offset
+	// 	g.slippymap.Update(userMouse.offsetX, userMouse.offsetY, false)
+	// } else {
+	// 	// otherwise update with no offset
+	// 	g.slippymap.Update(0, 0, false)
+	// }
 
 	// no error to return
 	return nil
@@ -110,18 +113,20 @@ func (g *Game) Update() error {
 
 func (g *Game) Draw(screen *ebiten.Image) {
 
-	// draw map
-	g.slippymap.Draw(screen)
+	// temporarily commented out lots of stuff just to play with SVG artwork.
 
-	// osm attribution
-	windowX, windowY := g.slippymap.GetSize()
-	attributionArea := ebiten.NewImage(100, 20)
-	attributionArea.Fill(color.Black)
-	attributionAreaDio := &ebiten.DrawImageOptions{}
-	attributionAreaDio.ColorM.Scale(1, 1, 1, 0.65)
-	attributionAreaDio.GeoM.Translate(float64(windowX-100), float64(windowY-20))
-	screen.DrawImage(attributionArea, attributionAreaDio)
-	ebitenutil.DebugPrintAt(screen, "© OpenStreetMap", windowX-96, windowY-18)
+	// // draw map
+	// g.slippymap.Draw(screen)
+
+	// // osm attribution
+	// windowX, windowY := g.slippymap.GetSize()
+	// attributionArea := ebiten.NewImage(100, 20)
+	// attributionArea.Fill(color.Black)
+	// attributionAreaDio := &ebiten.DrawImageOptions{}
+	// attributionAreaDio.ColorM.Scale(1, 1, 1, 0.65)
+	// attributionAreaDio.GeoM.Translate(float64(windowX-100), float64(windowY-20))
+	// screen.DrawImage(attributionArea, attributionAreaDio)
+	// ebitenutil.DebugPrintAt(screen, "© OpenStreetMap", windowX-96, windowY-18)
 
 	// debugging: darken area with debug text
 	darkArea := ebiten.NewImage(240, 100)
@@ -131,37 +136,40 @@ func (g *Game) Draw(screen *ebiten.Image) {
 	screen.DrawImage(darkArea, darkAreaDio)
 
 	// debugging: show fps
-	ebitenutil.DebugPrintAt(screen, fmt.Sprintf("TPS: %0.2f", ebiten.CurrentTPS()), 0, 0)
+	ebitenutil.DebugPrintAt(screen, fmt.Sprintf("TPS: %0.2f  FPS: %0.2f", ebiten.CurrentTPS(), ebiten.CurrentFPS()), 0, 0)
 
-	// debugging: show mouse position
-	dbgMousePosTxt := fmt.Sprintf("Mouse position: %d, %d\n", userMouse.currX, userMouse.currY)
-	ebitenutil.DebugPrintAt(screen, dbgMousePosTxt, 0, 15)
+	// // debugging: show mouse position
+	// dbgMousePosTxt := fmt.Sprintf("Mouse position: %d, %d\n", userMouse.currX, userMouse.currY)
+	// ebitenutil.DebugPrintAt(screen, dbgMousePosTxt, 0, 15)
 
-	// debugging: show zoom level
-	dbgZoomLevelTxt := fmt.Sprintf("Zoom level: %d\n", g.slippymap.GetZoomLevel())
-	ebitenutil.DebugPrintAt(screen, dbgZoomLevelTxt, 0, 30)
+	// // debugging: show zoom level
+	// dbgZoomLevelTxt := fmt.Sprintf("Zoom level: %d\n", g.slippymap.GetZoomLevel())
+	// ebitenutil.DebugPrintAt(screen, dbgZoomLevelTxt, 0, 30)
 
-	// debugging: show tile moused over
-	ctX, ctY, ctZ, err := g.slippymap.GetTileAtPixel(userMouse.currX, userMouse.currY)
-	if err != nil {
-		dbgMouseOverTileText = "Mouse over no tile"
-	} else {
-		dbgMouseOverTileText = fmt.Sprintf("Mouse over tile: %d/%d/%d", ctX, ctY, ctZ)
-	}
-	ebitenutil.DebugPrintAt(screen, dbgMouseOverTileText, 0, 45)
+	// // debugging: show tile moused over
+	// ctX, ctY, ctZ, err := g.slippymap.GetTileAtPixel(userMouse.currX, userMouse.currY)
+	// if err != nil {
+	// 	dbgMouseOverTileText = "Mouse over no tile"
+	// } else {
+	// 	dbgMouseOverTileText = fmt.Sprintf("Mouse over tile: %d/%d/%d", ctX, ctY, ctZ)
+	// }
+	// ebitenutil.DebugPrintAt(screen, dbgMouseOverTileText, 0, 45)
 
-	// debugging: show lat/long under mouse
-	ctLat, ctLong, err := g.slippymap.GetLatLongAtPixel(userMouse.currX, userMouse.currY)
-	if err != nil {
-		dbgMouseLatLongText = "Mouse over no tile"
-	} else {
-		dbgMouseLatLongText = fmt.Sprintf("Mouse over lat/long: %.4f/%.4f", ctLat, ctLong)
-	}
-	ebitenutil.DebugPrintAt(screen, dbgMouseLatLongText, 0, 60)
+	// // debugging: show lat/long under mouse
+	// ctLat, ctLong, err := g.slippymap.GetLatLongAtPixel(userMouse.currX, userMouse.currY)
+	// if err != nil {
+	// 	dbgMouseLatLongText = "Mouse over no tile"
+	// } else {
+	// 	dbgMouseLatLongText = fmt.Sprintf("Mouse over lat/long: %.4f/%.4f", ctLat, ctLong)
+	// }
+	// ebitenutil.DebugPrintAt(screen, dbgMouseLatLongText, 0, 60)
 
-	// debugging: show number of tiles
-	dbgNumTilesText := fmt.Sprintf("Tiles rendered: %d", g.slippymap.GetNumTiles())
-	ebitenutil.DebugPrintAt(screen, dbgNumTilesText, 0, 75)
+	// // debugging: show number of tiles
+	// dbgNumTilesText := fmt.Sprintf("Tiles rendered: %d", g.slippymap.GetNumTiles())
+	// ebitenutil.DebugPrintAt(screen, dbgNumTilesText, 0, 75)
+
+	// test
+	markers.DrawAirliner(screen)
 
 }
 
