@@ -190,7 +190,7 @@ func (g *Game) Draw(screen *ebiten.Image) {
 	dbgNumTilesText := fmt.Sprintf("Tiles rendered: %d", g.slippymap.GetNumTiles())
 	ebitenutil.DebugPrintAt(screen, dbgNumTilesText, 0, 75)
 
-	// draw aircraft (TEST)
+	// draw aircraft (TESTING)
 	vectorOpts := &ebiten.DrawTrianglesOptions{
 		FillRule: ebiten.EvenOdd,
 	}
