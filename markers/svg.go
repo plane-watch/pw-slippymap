@@ -63,10 +63,11 @@ var (
 
 // SVG struct to assist with building the vector.Path
 type SVG struct {
-	x, y               float32
-	startx, starty     float32
-	currentPathCommand int
-	path               *vector.Path
+	x, y               float32      // the current x/y coordinates of the "pen"
+	startx, starty     float32      // the initial x/y coordinates of the "pen"
+	currentPathCommand int          // the current SVG command
+	path               *vector.Path // the pointer to the ebiten vector.Path object
+	scale              float32      // the scale factor. Points from SVG are multiplied by this figure
 }
 
 func (svg *SVG) moveTo(d string, dx bool) (remaining_d string, err error) {
@@ -89,6 +90,10 @@ func (svg *SVG) moveTo(d string, dx bool) (remaining_d string, err error) {
 	if found == false {
 		return d, errors.New("moveTo: could not consume y")
 	}
+
+	// scale points
+	x = x * svg.scale
+	y = y * svg.scale
 
 	// if MoveToDX
 	if dx {
@@ -141,6 +146,10 @@ func (svg *SVG) lineTo(d string, dx bool) (remaining_d string, err error) {
 		return d, errors.New("lineTo: could not consume y")
 	}
 
+	// scale
+	x = x * svg.scale
+	y = y * svg.scale
+
 	// if LineToDx
 	if dx {
 		x = svg.x + x
@@ -172,6 +181,9 @@ func (svg *SVG) vertLineTo(d string, dx bool) (remaining_d string, err error) {
 		return d, errors.New("vertLineTo: could not consume y")
 	}
 
+	// scale
+	y = y * svg.scale
+
 	// if LineToDx
 	if dx {
 		y = svg.y + y
@@ -200,6 +212,9 @@ func (svg *SVG) horizLineTo(d string, dx bool) (remaining_d string, err error) {
 	if found == false {
 		return d, errors.New("horizLineTo: could not consume x")
 	}
+
+	// scale
+	x = x * svg.scale
 
 	// if LineToDx
 	if dx {
@@ -274,6 +289,14 @@ func (svg *SVG) cubicTo(d string, dx bool) (remaining_d string, err error) {
 	if found == false {
 		return d, errors.New("cubicTo: could not consume y")
 	}
+
+	// scale
+	x1 = x1 * svg.scale
+	y1 = y1 * svg.scale
+	x2 = x2 * svg.scale
+	y2 = y2 * svg.scale
+	x = x * svg.scale
+	y = y * svg.scale
 
 	// if MoveToDX
 	if dx {
@@ -415,8 +438,9 @@ func consumeNumber(d string) (numberFound bool, number float32, remaining_d stri
 	return false, 0, d, nil
 }
 
-func PathFromSVG(path *vector.Path, d string) (err error) {
+func PathFromSVG(path *vector.Path, scale float32, d string) (err error) {
 	// Takes SVG path data as string d. Appends to the vector.Path object given by path.
+	// SVG coordinates are multiplied by scale
 
 	// define new svg object
 	svg := SVG{
@@ -424,6 +448,7 @@ func PathFromSVG(path *vector.Path, d string) (err error) {
 		y:                  0,
 		currentPathCommand: SVG_PATH_CMD_None,
 		path:               path,
+		scale:              scale,
 	}
 
 	for len(d) > 0 {
