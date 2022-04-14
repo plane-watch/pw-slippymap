@@ -169,7 +169,7 @@ func (g *Game) Draw(screen *ebiten.Image) {
 	// ebitenutil.DebugPrintAt(screen, dbgNumTilesText, 0, 75)
 
 	// test
-	markers.DrawAirliner(screen)
+	markers.DrawAirbusA380(screen)
 
 }
 
