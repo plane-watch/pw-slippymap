@@ -10,6 +10,7 @@ package markers
 import (
 	"errors"
 	"log"
+	"math"
 	"regexp"
 	"strconv"
 
@@ -65,9 +66,19 @@ var (
 type SVG struct {
 	x, y               float32      // the current x/y coordinates of the "pen"
 	startx, starty     float32      // the initial x/y coordinates of the "pen"
+	maxx, maxy         float32      // maximum x & y
 	currentPathCommand int          // the current SVG command
 	path               *vector.Path // the pointer to the ebiten vector.Path object
 	scale              float32      // the scale factor. Points from SVG are multiplied by this figure
+}
+
+func (svg *SVG) updateMaxXY(x, y float32) {
+	if x > svg.maxx {
+		svg.maxx = x
+	}
+	if y > svg.maxy {
+		svg.maxy = y
+	}
 }
 
 func (svg *SVG) moveTo(d string, dx bool) (remaining_d string, err error) {
@@ -112,6 +123,8 @@ func (svg *SVG) moveTo(d string, dx bool) (remaining_d string, err error) {
 	svg.y = y
 	svg.startx = x
 	svg.starty = y
+
+	svg.updateMaxXY(x, y)
 
 	// return
 	return d, nil
@@ -165,6 +178,8 @@ func (svg *SVG) lineTo(d string, dx bool) (remaining_d string, err error) {
 	svg.x = x
 	svg.y = y
 
+	svg.updateMaxXY(x, y)
+
 	// return
 	return d, nil
 }
@@ -197,6 +212,8 @@ func (svg *SVG) vertLineTo(d string, dx bool) (remaining_d string, err error) {
 	// update the current pen position
 	svg.y = y
 
+	svg.updateMaxXY(svg.x, y)
+
 	// return
 	return d, nil
 }
@@ -228,6 +245,8 @@ func (svg *SVG) horizLineTo(d string, dx bool) (remaining_d string, err error) {
 
 	// update the current pen position
 	svg.x = x
+
+	svg.updateMaxXY(x, svg.y)
 
 	// return
 	return d, nil
@@ -316,6 +335,8 @@ func (svg *SVG) cubicTo(d string, dx bool) (remaining_d string, err error) {
 	// update the current pen position
 	svg.x = x
 	svg.y = y
+
+	svg.updateMaxXY(x, y)
 
 	// return
 	return d, nil
@@ -438,7 +459,7 @@ func consumeNumber(d string) (numberFound bool, number float32, remaining_d stri
 	return false, 0, d, nil
 }
 
-func PathFromSVG(path *vector.Path, scale float32, d string) (err error) {
+func PathFromSVG(path *vector.Path, scale float32, d string) (maxx, maxxy int, err error) {
 	// Takes SVG path data as string d. Appends to the vector.Path object given by path.
 	// SVG coordinates are multiplied by scale
 
@@ -507,7 +528,7 @@ func PathFromSVG(path *vector.Path, scale float32, d string) (err error) {
 			case "Z", "z":
 				svg.currentPathCommand = SVG_PATH_CMD_ClosePath
 			default:
-				return errors.New("Unknown SVG command")
+				return int(math.Ceil(float64(svg.maxx))), int(math.Ceil(float64(svg.maxy))), errors.New("Unknown SVG command")
 			}
 		}
 
@@ -539,7 +560,7 @@ func PathFromSVG(path *vector.Path, scale float32, d string) (err error) {
 			svg.closePath()
 		default:
 			// fmt.Println(svg.currentPathCommand)
-			return errors.New("SVG error")
+			return int(math.Ceil(float64(svg.maxx))), int(math.Ceil(float64(svg.maxy))), errors.New("SVG error")
 		}
 		if err != nil {
 			log.Fatal(err)
@@ -547,5 +568,5 @@ func PathFromSVG(path *vector.Path, scale float32, d string) (err error) {
 
 		// fmt.Println("")
 	}
-	return nil
+	return int(math.Ceil(float64(svg.maxx))), int(math.Ceil(float64(svg.maxy))), nil
 }
