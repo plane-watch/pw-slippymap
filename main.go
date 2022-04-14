@@ -151,7 +151,7 @@ func (g *Game) Draw(screen *ebiten.Image) {
 	ebitenutil.DebugPrintAt(screen, "© OpenStreetMap", windowX-96, windowY-18)
 
 	// debugging: darken area with debug text
-	darkArea := ebiten.NewImage(240, 100)
+	darkArea := ebiten.NewImage(windowWidth, 100)
 	darkArea.Fill(color.Black)
 	darkAreaDio := &ebiten.DrawImageOptions{}
 	darkAreaDio.ColorM.Scale(1, 1, 1, 0.65)
@@ -194,9 +194,22 @@ func (g *Game) Draw(screen *ebiten.Image) {
 	vectorOpts := &ebiten.DrawTrianglesOptions{
 		FillRule: ebiten.EvenOdd,
 	}
-	img := ebiten.NewImage(VectorSprites["A380"].maxX, VectorSprites["A380"].maxY)
-	img.DrawTriangles(VectorSprites["A380"].vs, VectorSprites["A380"].is, emptyImage.SubImage(image.Rect(0, 0, 1, 1)).(*ebiten.Image), vectorOpts)
-	screen.DrawImage(img, nil)
+	drawOpts := &ebiten.DrawImageOptions{}
+
+	drawOpts.GeoM.Translate(200, 0)
+	img := ebiten.NewImage(VectorSprites["Airbus A380"].maxX, VectorSprites["Airbus A380"].maxY)
+	img.DrawTriangles(VectorSprites["Airbus A380"].vs, VectorSprites["Airbus A380"].is, emptyImage.SubImage(image.Rect(0, 0, 1, 1)).(*ebiten.Image), vectorOpts)
+	screen.DrawImage(img, drawOpts)
+
+	drawOpts.GeoM.Translate(50, 0)
+	img = ebiten.NewImage(VectorSprites["Fokker F100"].maxX, VectorSprites["Fokker F100"].maxY)
+	img.DrawTriangles(VectorSprites["Fokker F100"].vs, VectorSprites["Fokker F100"].is, emptyImage.SubImage(image.Rect(0, 0, 1, 1)).(*ebiten.Image), vectorOpts)
+	screen.DrawImage(img, drawOpts)
+
+	drawOpts.GeoM.Translate(40, 0)
+	img = ebiten.NewImage(VectorSprites["Pilatus PC12"].maxX, VectorSprites["Pilatus PC12"].maxY)
+	img.DrawTriangles(VectorSprites["Pilatus PC12"].vs, VectorSprites["Pilatus PC12"].is, emptyImage.SubImage(image.Rect(0, 0, 1, 1)).(*ebiten.Image), vectorOpts)
+	screen.DrawImage(img, drawOpts)
 
 }
 
@@ -232,7 +245,29 @@ func loadVectorSprites() {
 	log.Println("Loading sprite of Airbus A380")
 	vs, is, maxX, maxY, err = markers.InitMarker(markers.AIRBUS_A380_SVGPATH, markers.AIRBUS_A380_SCALE)
 	failFatally(err)
-	VectorSprites["A380"] = VectorSprite{
+	VectorSprites["Airbus A380"] = VectorSprite{
+		vs:   vs,
+		is:   is,
+		maxX: maxX,
+		maxY: maxY,
+	}
+
+	// Fokker F100
+	log.Println("Loading sprite of Fokker F100")
+	vs, is, maxX, maxY, err = markers.InitMarker(markers.FOKKER_F100_SVGPATH, markers.FOKKER_F100_SCALE)
+	failFatally(err)
+	VectorSprites["Fokker F100"] = VectorSprite{
+		vs:   vs,
+		is:   is,
+		maxX: maxX,
+		maxY: maxY,
+	}
+
+	// Pilatus PC12
+	log.Println("Loading sprite of Pilatus PC12")
+	vs, is, maxX, maxY, err = markers.InitMarker(markers.PILATUS_PC12_SVGPATH, markers.PILATUS_PC12_SCALE)
+	failFatally(err)
+	VectorSprites["Pilatus PC12"] = VectorSprite{
 		vs:   vs,
 		is:   is,
 		maxX: maxX,
