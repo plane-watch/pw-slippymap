@@ -222,8 +222,13 @@ func (g *Game) Layout(outsideWidth, outsideHeight int) (screenWidth, screenHeigh
 		g.slippymap.SetSize(outsideWidth, outsideHeight)
 	}
 
-	// return window size
-	return ebiten.WindowSize()
+	// WindowSize returns 0,0 in non-desktop environments (eg wasm). Only rely on it if
+	// the values aren't 0,0
+	ew, eh := ebiten.WindowSize()
+	if ew == 0 || eh == 0 {
+		return outsideWidth, outsideHeight
+	}
+	return ew, eh
 }
 
 func failFatally(err error) {
