@@ -2,11 +2,13 @@ package main
 
 import (
 	"fmt"
+	"image"
 	"image/color"
 	"log"
 	"os"
 	"path"
 	"pw_slippymap/localdata"
+	"pw_slippymap/markers"
 	"pw_slippymap/slippymap"
 
 	"github.com/hajimehoshi/ebiten/v2"
@@ -20,6 +22,37 @@ const (
 	INIT_WINDOW_SIZE    = 0.8      // percentage size of active screen
 	ZOOM_COOLDOWN_TICKS = 5        // number of ticks to wait between zoom in/out ops
 )
+
+var (
+	// Zoom
+	zoomCoolDown int = 0
+
+	// Window Size
+	windowWidth  int
+	windowHeight int
+
+	// Mouse
+	userMouse UserMouse
+
+	// Debugging
+	dbgMouseOverTileText string
+	dbgMouseLatLongText  string
+
+	// Path for tile cache
+	pathTileCache string
+
+	// Appears to be needed for DrawTriangles to work...
+	emptyImage = ebiten.NewImage(1, 1)
+
+	// Sprites
+	VectorSprites map[string]VectorSprite
+)
+
+type VectorSprite struct {
+	vs         []ebiten.Vertex
+	is         []uint16
+	maxX, maxY int
+}
 
 type Game struct {
 	slippymap *slippymap.SlippyMap // hold the slippymap within the "game" object
@@ -44,17 +77,9 @@ func (um *UserMouse) update(x, y int) {
 	um.offsetY = um.currY - um.prevY
 }
 
-var (
-	zoomCoolDown         int = 0
-	windowWidth          int
-	windowHeight         int
-	userMouse            UserMouse
-	dbgMouseOverTileText string
-	dbgMouseLatLongText  string
-	pathTileCache        string
-)
-
 func (g *Game) Update() error {
+
+	// temporarily commented out lots of stuff just to play with SVG artwork.
 
 	// zoom: handle wheel
 	_, dy := ebiten.Wheel()
@@ -110,6 +135,8 @@ func (g *Game) Update() error {
 
 func (g *Game) Draw(screen *ebiten.Image) {
 
+	// temporarily commented out lots of stuff just to play with SVG artwork.
+
 	// draw map
 	g.slippymap.Draw(screen)
 
@@ -124,14 +151,14 @@ func (g *Game) Draw(screen *ebiten.Image) {
 	ebitenutil.DebugPrintAt(screen, "© OpenStreetMap", windowX-96, windowY-18)
 
 	// debugging: darken area with debug text
-	darkArea := ebiten.NewImage(240, 100)
+	darkArea := ebiten.NewImage(windowWidth, 100)
 	darkArea.Fill(color.Black)
 	darkAreaDio := &ebiten.DrawImageOptions{}
 	darkAreaDio.ColorM.Scale(1, 1, 1, 0.65)
 	screen.DrawImage(darkArea, darkAreaDio)
 
 	// debugging: show fps
-	ebitenutil.DebugPrintAt(screen, fmt.Sprintf("TPS: %0.2f", ebiten.CurrentTPS()), 0, 0)
+	ebitenutil.DebugPrintAt(screen, fmt.Sprintf("TPS: %0.2f  FPS: %0.2f", ebiten.CurrentTPS(), ebiten.CurrentFPS()), 0, 0)
 
 	// debugging: show mouse position
 	dbgMousePosTxt := fmt.Sprintf("Mouse position: %d, %d\n", userMouse.currX, userMouse.currY)
@@ -163,6 +190,27 @@ func (g *Game) Draw(screen *ebiten.Image) {
 	dbgNumTilesText := fmt.Sprintf("Tiles rendered: %d", g.slippymap.GetNumTiles())
 	ebitenutil.DebugPrintAt(screen, dbgNumTilesText, 0, 75)
 
+	// draw aircraft (TESTING)
+	vectorOpts := &ebiten.DrawTrianglesOptions{
+		FillRule: ebiten.EvenOdd,
+	}
+	drawOpts := &ebiten.DrawImageOptions{}
+
+	drawOpts.GeoM.Translate(200, 0)
+	img := ebiten.NewImage(VectorSprites["Airbus A380"].maxX, VectorSprites["Airbus A380"].maxY)
+	img.DrawTriangles(VectorSprites["Airbus A380"].vs, VectorSprites["Airbus A380"].is, emptyImage.SubImage(image.Rect(0, 0, 1, 1)).(*ebiten.Image), vectorOpts)
+	screen.DrawImage(img, drawOpts)
+
+	drawOpts.GeoM.Translate(50, 0)
+	img = ebiten.NewImage(VectorSprites["Fokker F100"].maxX, VectorSprites["Fokker F100"].maxY)
+	img.DrawTriangles(VectorSprites["Fokker F100"].vs, VectorSprites["Fokker F100"].is, emptyImage.SubImage(image.Rect(0, 0, 1, 1)).(*ebiten.Image), vectorOpts)
+	screen.DrawImage(img, drawOpts)
+
+	drawOpts.GeoM.Translate(40, 0)
+	img = ebiten.NewImage(VectorSprites["Pilatus PC12"].maxX, VectorSprites["Pilatus PC12"].maxY)
+	img.DrawTriangles(VectorSprites["Pilatus PC12"].vs, VectorSprites["Pilatus PC12"].is, emptyImage.SubImage(image.Rect(0, 0, 1, 1)).(*ebiten.Image), vectorOpts)
+	screen.DrawImage(img, drawOpts)
+
 }
 
 func (g *Game) Layout(outsideWidth, outsideHeight int) (screenWidth, screenHeight int) {
@@ -175,6 +223,62 @@ func (g *Game) Layout(outsideWidth, outsideHeight int) (screenWidth, screenHeigh
 
 	// return window size
 	return ebiten.WindowSize()
+}
+
+func failFatally(err error) {
+	// handle errors by failing
+	if err != nil {
+		log.Fatal(err)
+	}
+}
+
+func loadVectorSprites() {
+
+	var (
+		err        error
+		vs         []ebiten.Vertex
+		is         []uint16
+		maxX, maxY int
+	)
+
+	// Airbus A380
+	log.Println("Loading sprite of Airbus A380")
+	vs, is, maxX, maxY, err = markers.InitMarker(markers.AIRBUS_A380_SVGPATH, markers.AIRBUS_A380_SCALE)
+	failFatally(err)
+	VectorSprites["Airbus A380"] = VectorSprite{
+		vs:   vs,
+		is:   is,
+		maxX: maxX,
+		maxY: maxY,
+	}
+
+	// Fokker F100
+	log.Println("Loading sprite of Fokker F100")
+	vs, is, maxX, maxY, err = markers.InitMarker(markers.FOKKER_F100_SVGPATH, markers.FOKKER_F100_SCALE)
+	failFatally(err)
+	VectorSprites["Fokker F100"] = VectorSprite{
+		vs:   vs,
+		is:   is,
+		maxX: maxX,
+		maxY: maxY,
+	}
+
+	// Pilatus PC12
+	log.Println("Loading sprite of Pilatus PC12")
+	vs, is, maxX, maxY, err = markers.InitMarker(markers.PILATUS_PC12_SVGPATH, markers.PILATUS_PC12_SCALE)
+	failFatally(err)
+	VectorSprites["Pilatus PC12"] = VectorSprite{
+		vs:   vs,
+		is:   is,
+		maxX: maxX,
+		maxY: maxY,
+	}
+
+}
+
+func init() {
+	VectorSprites = make(map[string]VectorSprite)
+	emptyImage.Fill(color.White)
 }
 
 func main() {
@@ -211,6 +315,9 @@ func main() {
 	ebiten.SetWindowResizable(true)
 	ebiten.SetWindowSize(windowWidth, windowHeight)
 	ebiten.SetWindowTitle("plane.watch")
+
+	// load sprites
+	loadVectorSprites()
 
 	// initialise map: initialise the new slippymap
 	sm, err := slippymap.NewSlippyMap(windowWidth, windowHeight, INIT_ZOOM_LEVEL, INIT_CENTRE_LAT, INIT_CENTRE_LONG, pathTileCache)
