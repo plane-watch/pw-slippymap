@@ -285,27 +285,6 @@ func init() {
 func main() {
 	log.Print("Started")
 
-	// try to get user home dir (for map cache)
-	userHomeDir, err := os.UserHomeDir()
-	if err != nil {
-		log.Fatal(err)
-	}
-	fmt.Println("User home dir:", userHomeDir)
-
-	// create directory structure $HOME/.plane.watch if it doesn't exist
-	pathRoot := path.Join(userHomeDir, ".plane.watch")
-	err = localdata.SetupRoot(pathRoot)
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	// create directory structure $HOME/.plane.watch/tilecache if it doesn't exist
-	pathTileCache = path.Join(userHomeDir, ".plane.watch", "tilecache")
-	err = localdata.SetupTileCache(pathTileCache)
-	if err != nil {
-		log.Fatal(err)
-	}
-
 	// determine starting window size
 	// 80% of fullscreen
 	screenWidth, screenHeight := ebiten.ScreenSizeInFullscreen()
@@ -320,8 +299,13 @@ func main() {
 	// load sprites
 	loadVectorSprites()
 
+	tileProvider, err := tileProviderForOS()
+	if err != nil {
+		log.Fatal("could not initilalise tile provider because: ", err.Error())
+	}
+
 	// initialise map: initialise the new slippymap
-	sm, err := slippymap.NewSlippyMap(windowWidth, windowHeight, INIT_ZOOM_LEVEL, INIT_CENTRE_LAT, INIT_CENTRE_LONG, tileProviderForOS(pathTileCache))
+	sm, err := slippymap.NewSlippyMap(windowWidth, windowHeight, INIT_ZOOM_LEVEL, INIT_CENTRE_LAT, INIT_CENTRE_LONG, tileProvider)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -337,9 +321,33 @@ func main() {
 	}
 }
 
-func tileProviderForOS(tileCachePath string) slippymap.TileProvider {
+// If we are running in WASM/JS, then the browser does all relevant tile caching for us.
+// If running in desktop app mode, we need to cache the tiles ourselves
+func tileProviderForOS() (slippymap.TileProvider, error) {
 	if runtime.GOOS == "js" || false {
-		return &slippymap.OSMTileProvider{}
+		return &slippymap.OSMTileProvider{}, nil
 	}
-	return slippymap.NewCachedTileProvider(tileCachePath, &slippymap.OSMTileProvider{})
+
+	// try to get user home dir (for map cache)
+	userHomeDir, err := os.UserHomeDir()
+	if err != nil {
+		log.Fatal(err)
+	}
+	fmt.Println("User home dir:", userHomeDir)
+
+	// create directory structure $HOME/.plane.watch if it doesn't exist
+	pathRoot := path.Join(userHomeDir, ".plane.watch")
+	err = localdata.SetupRoot(pathRoot)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	// create directory structure $HOME/.plane.watch/tilecache if it doesn't exist
+	pathTileCache = path.Join(pathRoot, "tilecache")
+	err = localdata.SetupTileCache(pathTileCache)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	return slippymap.NewCachedTileProvider(pathTileCache, &slippymap.OSMTileProvider{}), nil
 }
