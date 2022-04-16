@@ -10,6 +10,7 @@ import (
 	"pw_slippymap/localdata"
 	"pw_slippymap/markers"
 	"pw_slippymap/slippymap"
+	"runtime"
 
 	"github.com/hajimehoshi/ebiten/v2"
 	"github.com/hajimehoshi/ebiten/v2/ebitenutil"
@@ -320,7 +321,7 @@ func main() {
 	loadVectorSprites()
 
 	// initialise map: initialise the new slippymap
-	sm, err := slippymap.NewSlippyMap(windowWidth, windowHeight, INIT_ZOOM_LEVEL, INIT_CENTRE_LAT, INIT_CENTRE_LONG, pathTileCache)
+	sm, err := slippymap.NewSlippyMap(windowWidth, windowHeight, INIT_ZOOM_LEVEL, INIT_CENTRE_LAT, INIT_CENTRE_LONG, tileProviderForOS(pathTileCache))
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -334,4 +335,11 @@ func main() {
 	if err := ebiten.RunGame(g); err != nil {
 		log.Fatal(err)
 	}
+}
+
+func tileProviderForOS(tileCachePath string) slippymap.TileProvider {
+	if runtime.GOOS == "js" || false {
+		return &slippymap.OSMTileProvider{}
+	}
+	return slippymap.NewCachedTileProvider(tileCachePath, &slippymap.OSMTileProvider{})
 }

@@ -5,11 +5,8 @@ import (
 	"fmt"
 	"image/color"
 	_ "image/png"
-	"io"
 	"log"
 	"math"
-	"net/http"
-	"os"
 	"path"
 	"sync"
 
@@ -23,10 +20,6 @@ const (
 	ZOOM_LEVEL_MAX             = 16   // maximum zoom level
 	ZOOM_LEVEL_MIN             = 2    // minimum zoom level
 	TILE_FADEIN_ALPHA_PER_TICK = 0.05 // amount of alpha added per tick for tile fade-in
-)
-
-var (
-	osm_url_prefix = 0 // used to round-robin connections to OSM servers, as-per https://wiki.openstreetmap.org/wiki/Slippy_map_tilenames#Tile_servers
 )
 
 type MapTile struct {
@@ -54,7 +47,8 @@ type SlippyMap struct {
 	offsetMaximumY int // maximum Y value for map tiles
 
 	placeholderArtwork *ebiten.Image // placeholder artwork for map tile
-	pathTileCache      string        // path to cache on disk
+
+	tileProvider TileProvider
 }
 
 func (sm *SlippyMap) GetZoomLevel() (zoomLevel int) {
@@ -309,7 +303,7 @@ func (sm *SlippyMap) makeTile(osmX, osmY, offsetX, offsetY int) {
 
 	go func() {
 		// get tile artwork
-		tilePath, err := cacheTile(osmX, osmY, sm.zoomLevel, sm.pathTileCache)
+		tilePath, err := sm.tileProvider.GetTileAddress(osmX, osmY, sm.zoomLevel)
 		if err != nil {
 			log.Fatal(err)
 		}
@@ -446,7 +440,7 @@ func (sm *SlippyMap) SetZoomLevel(zoomLevel int, lat_deg, long_deg float64) (new
 	}
 
 	// create a new slippymap centred on the requested lat/long, at the requested zoom level
-	newsm, err = NewSlippyMap(sm.mapWidthPx, sm.mapHeightPx, zoomLevel, lat_deg, long_deg, sm.pathTileCache)
+	newsm, err = NewSlippyMap(sm.mapWidthPx, sm.mapHeightPx, zoomLevel, lat_deg, long_deg, sm.tileProvider)
 	if err != nil {
 		return SlippyMap{}, err
 	}
@@ -458,7 +452,7 @@ func (sm *SlippyMap) SetZoomLevel(zoomLevel int, lat_deg, long_deg float64) (new
 	return newsm, nil
 }
 
-func NewSlippyMap(mapWidthPx, mapHeightPx, zoomLevel int, centreLat, centreLong float64, pathTileCache string) (sm SlippyMap, err error) {
+func NewSlippyMap(mapWidthPx, mapHeightPx, zoomLevel int, centreLat, centreLong float64, tileProvider TileProvider) (sm SlippyMap, err error) {
 
 	// load tile placeholder artwork
 	tilePath := path.Join("assets", "map_tile_not_loaded.png")
@@ -475,7 +469,7 @@ func NewSlippyMap(mapWidthPx, mapHeightPx, zoomLevel int, centreLat, centreLong 
 		zoomLevel:          zoomLevel,
 		zoomPrevLevelImg:   ebiten.NewImage(mapWidthPx, mapHeightPx),
 		placeholderArtwork: img,
-		pathTileCache:      pathTileCache,
+		tileProvider:       tileProvider,
 	}
 
 	// update size
@@ -491,92 +485,6 @@ func NewSlippyMap(mapWidthPx, mapHeightPx, zoomLevel int, centreLat, centreLong 
 
 	// return the slippymap
 	return sm, nil
-}
-
-func getOSMTileURL(x, y, z int) (url string) {
-	// returns URL to open street map tile
-	// load balance urls across servers as-per OSM guidelines: https://wiki.openstreetmap.org/wiki/Slippy_map_tilenames#Tile_servers
-	switch osm_url_prefix {
-	case 0:
-		url = fmt.Sprintf("http://a.tile.openstreetmap.org/%d/%d/%d.png", z, x, y)
-		osm_url_prefix = 1
-	case 1:
-		url = fmt.Sprintf("http://b.tile.openstreetmap.org/%d/%d/%d.png", z, x, y)
-		osm_url_prefix = 2
-	case 2:
-		url = fmt.Sprintf("http://c.tile.openstreetmap.org/%d/%d/%d.png", z, x, y)
-		osm_url_prefix = 0
-	}
-	return url
-}
-
-func cacheTile(x, y, z int, pathTileCache string) (tilePath string, err error) {
-	// if the tile at URL is not already cached, download it
-	// return the local path to the tile in cache
-
-	// TODO: this will eventually need refactoring. There's no retry mechanism if there's a failure.
-	// We probably also want to do something with "if-modified-since" if the cached file is older than 7 days.
-	// This is bare minimum to get functionality working
-
-	// determine tile filename
-	tileFile := fmt.Sprintf("%d_%d_%d.png", x, y, z)
-
-	// determine full path to tile file
-	tilePath = path.Join(pathTileCache, tileFile)
-
-	// check if tile exists in cache
-	if _, err := os.Stat(tilePath); errors.Is(err, os.ErrNotExist) {
-		// tile does not exist in cache
-
-		// determine OSM url
-		url := getOSMTileURL(x, y, z)
-
-		// log.Print("Downloading tile to cache:", url, "to", tilePath)
-
-		// prepare http client
-		client := &http.Client{}
-
-		// prepare the request
-		req, err := http.NewRequest("GET", url, nil)
-		if err != nil {
-			return "", err
-		}
-
-		// set the header (requirement for using osm)
-		req.Header.Set("User-Agent", "pw_slippymap/0.1 https://github.com/plane-watch/pw-slippymap")
-
-		// get the data
-		resp, err := client.Do(req)
-		if err != nil {
-			return "", err
-		}
-		defer resp.Body.Close()
-
-		// check response code
-		if resp.StatusCode != 200 {
-			errText := fmt.Sprintf("Downloading %s returned: %s", url, resp.Status)
-			return "", errors.New(errText)
-		}
-
-		// create the file
-		out, err := os.Create(tilePath)
-		if err != nil {
-			return "", err
-		}
-		defer out.Close()
-
-		// write data to file
-		_, err = io.Copy(out, resp.Body)
-		if err != nil {
-			return "", err
-		}
-
-		return tilePath, nil
-
-	} else {
-		// log.Print("Tile is cached:", tilePath)
-		return tilePath, nil
-	}
 }
 
 func calcN(zoom_lvl int) (n int) {
