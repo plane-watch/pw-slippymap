@@ -1,6 +1,6 @@
 # plane-watch/pw-slippymap
 
-A [Slippy Map](https://wiki.openstreetmap.org/wiki/Slippy_Map) written in Go, eventually destined to be compiled to WebAssembly, for the plane.watch frontend (maybe).
+A [Slippy Map](https://wiki.openstreetmap.org/wiki/Slippy_Map) written in Go, runs in desktop mode or in js/wasm, for the plane.watch frontend (maybe).
 
 ## Current state
 
@@ -19,4 +19,15 @@ A [Slippy Map](https://wiki.openstreetmap.org/wiki/Slippy_Map) written in Go, ev
   * Linux: `apt-get install libxcursor-dev libxrandr-dev libxinerama-dev libxi-dev`
 * Clone the repo
 * Change to the repo dir
+
+Then...
+
+### Desktop mode
+
 * `go run main.go`
+
+### WASM Mode
+
+* `go install github.com/hajimehoshi/wasmserve@latest` - install wasmserve once
+* `wasmserve .` - launches local dev server
+* open [http://localhost:8080/](http://localhost:8080/) and wait for the app to compile+load
