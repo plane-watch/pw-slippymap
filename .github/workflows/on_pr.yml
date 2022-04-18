@@ -59,8 +59,6 @@ jobs:
       #     sudo apt-get update
       #     sudo apt-get install --no-install-recommends -y libgl-dev libxcursor-dev libxrandr-dev libxinerama-dev libxi-dev libxxf86vm-dev
 
-      - name: Run headless test
-        uses: GabrielBB/xvfb-action@v1
-        with:
-          run: GOOS=js GOARCH=wasm go test -v ./...
+      - name: Run wasm test
+        run: GOOS=js GOARCH=wasm go test -v ./...
       
