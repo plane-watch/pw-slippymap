@@ -1,0 +1,30 @@
+---
+name: Pull Request
+
+on:
+  workflow_dispatch:
+  pull_request:
+    branches:
+      - main
+
+jobs:
+
+  go-tests:
+    name: Go tests
+    runs-on: ubuntu-latest
+    steps:
+
+      - uses: actions/checkout@v3
+
+      - name: Install prereqs
+        run: |
+          sudo apt-get update
+          sudo apt-get install --no-install-recommends -y libgl-dev libxcursor-dev libxrandr-dev libxinerama-dev libxi-dev libxxf86vm-dev
+
+      - name: Run headless test
+        uses: GabrielBB/xvfb-action@v1
+        with:
+          run: go test -v ./...
+
+      # - name: Run Go tests
+      #   run: go test -v ./...
