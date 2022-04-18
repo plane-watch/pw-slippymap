@@ -58,7 +58,7 @@ jobs:
 
   go-build-linux:
     needs: [go-test]
-    name: "Go build: Linux"
+    name: "Test Go build: Linux"
     runs-on: ubuntu-latest
     strategy:
       fail-fast: true
@@ -82,7 +82,7 @@ jobs:
 
   go-build-macos:
     needs: [go-test]
-    name: "Go build: MacOS"
+    name: "Test Go build: MacOS"
     runs-on: macos-latest
     strategy:
       fail-fast: true
@@ -101,7 +101,7 @@ jobs:
 
   go-build-windows:
     needs: [go-test]
-    name: "Go build: Windows"
+    name: "Test Go build: Windows"
     runs-on: windows-latest
     strategy:
       fail-fast: true
@@ -122,7 +122,7 @@ jobs:
 
   go-build-wasm:
     needs: [go-test-wasm]
-    name: "Go build: WASM"
+    name: "Test Go build: WASM"
     runs-on: ubuntu-latest
     steps:
 
