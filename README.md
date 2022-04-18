@@ -1,5 +1,7 @@
 # plane-watch/pw-slippymap
 
+[![codecov](https://codecov.io/gh/plane-watch/pw-slippymap/branch/main/graph/badge.svg?token=A06K6I6XM0)](https://codecov.io/gh/plane-watch/pw-slippymap)
+
 A [Slippy Map](https://wiki.openstreetmap.org/wiki/Slippy_Map) written in Go, runs in desktop mode or in js/wasm, for the plane.watch frontend (maybe).
 
 ## Current state
