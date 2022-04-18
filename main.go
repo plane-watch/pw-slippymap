@@ -10,6 +10,7 @@ import (
 	"pw_slippymap/localdata"
 	"pw_slippymap/markers"
 	"pw_slippymap/slippymap"
+	"runtime"
 
 	"github.com/hajimehoshi/ebiten/v2"
 	"github.com/hajimehoshi/ebiten/v2/ebitenutil"
@@ -221,8 +222,13 @@ func (g *Game) Layout(outsideWidth, outsideHeight int) (screenWidth, screenHeigh
 		g.slippymap.SetSize(outsideWidth, outsideHeight)
 	}
 
-	// return window size
-	return ebiten.WindowSize()
+	// WindowSize returns 0,0 in non-desktop environments (eg wasm). Only rely on it if
+	// the values aren't 0,0
+	ew, eh := ebiten.WindowSize()
+	if ew == 0 || eh == 0 {
+		return outsideWidth, outsideHeight
+	}
+	return ew, eh
 }
 
 func failFatally(err error) {
@@ -284,6 +290,49 @@ func init() {
 func main() {
 	log.Print("Started")
 
+	// determine starting window size
+	// 80% of fullscreen
+	screenWidth, screenHeight := ebiten.ScreenSizeInFullscreen()
+	windowWidth = int(float64(screenWidth) * INIT_WINDOW_SIZE)
+	windowHeight = int(float64(screenHeight) * INIT_WINDOW_SIZE)
+
+	// set up initial window
+	ebiten.SetWindowResizable(true)
+	ebiten.SetWindowSize(windowWidth, windowHeight)
+	ebiten.SetWindowTitle("plane.watch")
+
+	// load sprites
+	loadVectorSprites()
+
+	tileProvider, err := tileProviderForOS()
+	if err != nil {
+		log.Fatal("could not initilalise tile provider because: ", err.Error())
+	}
+
+	// initialise map: initialise the new slippymap
+	sm, err := slippymap.NewSlippyMap(windowWidth, windowHeight, INIT_ZOOM_LEVEL, INIT_CENTRE_LAT, INIT_CENTRE_LONG, tileProvider)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	// prepare "game"
+	g := &Game{
+		slippymap: &sm,
+	}
+
+	// run
+	if err := ebiten.RunGame(g); err != nil {
+		log.Fatal(err)
+	}
+}
+
+// If we are running in WASM/JS, then the browser does all relevant tile caching for us.
+// If running in desktop app mode, we need to cache the tiles ourselves
+func tileProviderForOS() (slippymap.TileProvider, error) {
+	if runtime.GOOS == "js" || false {
+		return &slippymap.OSMTileProvider{}, nil
+	}
+
 	// try to get user home dir (for map cache)
 	userHomeDir, err := os.UserHomeDir()
 	if err != nil {
@@ -299,39 +348,11 @@ func main() {
 	}
 
 	// create directory structure $HOME/.plane.watch/tilecache if it doesn't exist
-	pathTileCache = path.Join(userHomeDir, ".plane.watch", "tilecache")
+	pathTileCache = path.Join(pathRoot, "tilecache")
 	err = localdata.SetupTileCache(pathTileCache)
 	if err != nil {
 		log.Fatal(err)
 	}
 
-	// determine starting window size
-	// 80% of fullscreen
-	screenWidth, screenHeight := ebiten.ScreenSizeInFullscreen()
-	windowWidth = int(float64(screenWidth) * INIT_WINDOW_SIZE)
-	windowHeight = int(float64(screenHeight) * INIT_WINDOW_SIZE)
-
-	// set up initial window
-	ebiten.SetWindowResizable(true)
-	ebiten.SetWindowSize(windowWidth, windowHeight)
-	ebiten.SetWindowTitle("plane.watch")
-
-	// load sprites
-	loadVectorSprites()
-
-	// initialise map: initialise the new slippymap
-	sm, err := slippymap.NewSlippyMap(windowWidth, windowHeight, INIT_ZOOM_LEVEL, INIT_CENTRE_LAT, INIT_CENTRE_LONG, pathTileCache)
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	// prepare "game"
-	g := &Game{
-		slippymap: &sm,
-	}
-
-	// run
-	if err := ebiten.RunGame(g); err != nil {
-		log.Fatal(err)
-	}
+	return slippymap.NewCachedTileProvider(pathTileCache, &slippymap.OSMTileProvider{}), nil
 }
