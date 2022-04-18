@@ -79,3 +79,58 @@ jobs:
       - name: Build
         run: |
           GOOS=linux GOARCH=${{ matrix.goarch }} go build
+
+  go-build-macos:
+    needs: [go-test]
+    name: "Go build: MacOS"
+    runs-on: macos-latest
+    strategy:
+      fail-fast: true
+      matrix:
+        goarch: [amd64, arm64]
+    steps:
+
+      - name: Install Go
+        uses: actions/setup-go@v2
+      
+      - uses: actions/checkout@v3
+
+      - name: Build
+        run: |
+          GOOS=darwin GOARCH=${{ matrix.goarch }} go build
+
+  go-build-windows:
+    needs: [go-test]
+    name: "Go build: Windows"
+    runs-on: windows-latest
+    strategy:
+      fail-fast: true
+      matrix:
+        goarch: [amd64]
+    steps:
+
+      - name: Install Go
+        uses: actions/setup-go@v2
+      
+      - uses: actions/checkout@v3
+
+      - name: Build
+        run: |
+          GOOS=windows GOARCH=${{ matrix.goarch }} go build
+
+  go-build-wasm:
+    needs: [go-test-wasm]
+    name: "Go build: WASM"
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: true
+    steps:
+
+      - name: Install Go
+        uses: actions/setup-go@v2
+      
+      - uses: actions/checkout@v3
+
+      - name: Build
+        run: |
+          GOOS=js GOARCH=wasm go build
