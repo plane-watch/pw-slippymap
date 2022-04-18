@@ -5,6 +5,70 @@ import (
 	"testing"
 )
 
+const (
+	INIT_CENTRE_LAT  = -31.9523 // initial map centre lat
+	INIT_CENTRE_LONG = 115.8613 // initial map centre long
+	INIT_ZOOM_LEVEL  = 9        // initial OSM zoom level
+)
+
+func TestSlippyMap(t *testing.T) {
+
+	// get tile provider
+	tileProvider, err := TileProviderForOS()
+	if err != nil {
+		t.Error(err)
+	}
+
+	// test NewSlippyMap
+	smInitial, err := NewSlippyMap(1024, 1024, INIT_ZOOM_LEVEL, INIT_CENTRE_LAT, INIT_CENTRE_LONG, tileProvider)
+	if err != nil {
+		t.Error(err)
+	}
+
+	// test GetZoomLevel
+	zl := smInitial.GetZoomLevel()
+	if zl != INIT_ZOOM_LEVEL {
+		t.Errorf("GetZoomLevel returned %d, expected %d", zl, INIT_ZOOM_LEVEL)
+	}
+
+	// test SetZoomLevel
+	_, err = smInitial.SetZoomLevel(INIT_ZOOM_LEVEL+1, INIT_CENTRE_LAT, INIT_CENTRE_LONG)
+	if err != nil {
+		t.Error(err)
+	}
+
+	// test SetZoomLevel error
+	_, err = smInitial.SetZoomLevel(ZOOM_LEVEL_MAX+1, INIT_CENTRE_LAT, INIT_CENTRE_LONG)
+	if err != nil {
+		// test passes
+	} else {
+		t.Error("Expected error, got none")
+	}
+
+	// test SetZoomLevel error
+	_, err = smInitial.SetZoomLevel(ZOOM_LEVEL_MIN-1, INIT_CENTRE_LAT, INIT_CENTRE_LONG)
+	if err != nil {
+		// test passes
+	} else {
+		t.Error("Expected error, got none")
+	}
+
+	// test ZoomIn
+	_, err = smInitial.ZoomIn(INIT_CENTRE_LAT, INIT_CENTRE_LONG)
+	if err != nil {
+		t.Error(err)
+	}
+
+	// test ZoomOut
+	_, err = smInitial.ZoomOut(INIT_CENTRE_LAT, INIT_CENTRE_LONG)
+	if err != nil {
+		t.Error(err)
+	}
+
+}
+
+// func NewSlippyMap(mapWidthPx, mapHeightPx, zoomLevel int, centreLat, centreLong float64, tileProvider TileProvider) (sm SlippyMap, err error) {
+
 func TestGpsCoordsToTileInfo(t *testing.T) {
 
 	// define test data

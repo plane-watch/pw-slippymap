@@ -5,12 +5,8 @@ import (
 	"image"
 	"image/color"
 	"log"
-	"os"
-	"path"
-	"pw_slippymap/localdata"
 	"pw_slippymap/markers"
 	"pw_slippymap/slippymap"
-	"runtime"
 
 	"github.com/hajimehoshi/ebiten/v2"
 	"github.com/hajimehoshi/ebiten/v2/ebitenutil"
@@ -38,9 +34,6 @@ var (
 	// Debugging
 	dbgMouseOverTileText string
 	dbgMouseLatLongText  string
-
-	// Path for tile cache
-	pathTileCache string
 
 	// Appears to be needed for DrawTriangles to work...
 	emptyImage = ebiten.NewImage(1, 1)
@@ -304,7 +297,7 @@ func main() {
 	// load sprites
 	loadVectorSprites()
 
-	tileProvider, err := tileProviderForOS()
+	tileProvider, err := slippymap.TileProviderForOS()
 	if err != nil {
 		log.Fatal("could not initilalise tile provider because: ", err.Error())
 	}
@@ -324,35 +317,4 @@ func main() {
 	if err := ebiten.RunGame(g); err != nil {
 		log.Fatal(err)
 	}
-}
-
-// If we are running in WASM/JS, then the browser does all relevant tile caching for us.
-// If running in desktop app mode, we need to cache the tiles ourselves
-func tileProviderForOS() (slippymap.TileProvider, error) {
-	if runtime.GOOS == "js" {
-		return &slippymap.OSMTileProvider{}, nil
-	}
-
-	// try to get user home dir (for map cache)
-	userHomeDir, err := os.UserHomeDir()
-	if err != nil {
-		log.Fatal(err)
-	}
-	fmt.Println("User home dir:", userHomeDir)
-
-	// create directory structure $HOME/.plane.watch if it doesn't exist
-	pathRoot := path.Join(userHomeDir, ".plane.watch")
-	err = localdata.SetupRoot(pathRoot)
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	// create directory structure $HOME/.plane.watch/tilecache if it doesn't exist
-	pathTileCache = path.Join(pathRoot, "tilecache")
-	err = localdata.SetupTileCache(pathTileCache)
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	return slippymap.NewCachedTileProvider(pathTileCache, &slippymap.OSMTileProvider{}), nil
 }

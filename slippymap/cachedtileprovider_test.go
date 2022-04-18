@@ -38,4 +38,21 @@ func TestNewCachedTileProvider(t *testing.T) {
 	if tilePath != expectedPath {
 		t.Errorf("Expected: %s, got: %s", expectedPath, tilePath)
 	}
+
+	// prepare "faulty" OSMTileProvider
+	faultyOSMTileProvider := OSMTileProvider{
+		osm_url_prefix: 4,
+	}
+
+	// get cached tile provider
+	ctp = NewCachedTileProvider(dir, &faultyOSMTileProvider)
+
+	// request a tile
+	tilePath, err = ctp.GetTileAddress(2, 3, 4)
+	if err != nil {
+		// test passes
+	} else {
+		t.Errorf("Expected an error, got none")
+	}
+
 }

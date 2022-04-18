@@ -42,4 +42,12 @@ func TestGetTileAddress(t *testing.T) {
 		t.Errorf("Expected http://a.tile.openstreetmap.org/3/1/2.png, got: %s", url)
 	}
 
+	// set invalid tile prefix to generate an error
+	TileProvider.osm_url_prefix = 4
+	url, err = TileProvider.GetTileAddress(1, 2, 3)
+	if err != nil {
+		// test passes
+	} else {
+		t.Error("Expected an error, got none.")
+	}
 }
