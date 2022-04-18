@@ -80,6 +80,30 @@ jobs:
         run: |
           GOOS=linux GOARCH=${{ matrix.goarch }} go build
 
+  go-build-linux-arm:
+    needs: [go-test]
+    name: "Test Go build: Linux"
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: true
+      matrix:
+        goarch: [arm64]
+    steps:
+
+      - name: Install Go
+        uses: actions/setup-go@v2
+      
+      - uses: actions/checkout@v3
+
+      - name: Install dependencies for ubuntu-latest
+        run: |
+          sudo apt-get update
+          sudo apt-get install --no-install-recommends -y libgl-dev libxcursor-dev libxrandr-dev libxinerama-dev libxi-dev libxxf86vm-dev
+
+      - name: Build
+        run: |
+          CGO_ENABLED=1 GOOS=linux GOARCH=${{ matrix.goarch }} go build
+
   go-build-macos:
     needs: [go-test]
     name: "Test Go build: MacOS"
