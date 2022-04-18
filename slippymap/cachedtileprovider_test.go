@@ -4,10 +4,16 @@ import (
 	"io/ioutil"
 	"os"
 	"path"
+	"runtime"
 	"testing"
 )
 
 func TestNewCachedTileProvider(t *testing.T) {
+
+	// skip test if webassembly
+	if runtime.GOOS == "js" {
+		t.SkipNow()
+	}
 
 	// create temp dir
 	dir, err := ioutil.TempDir(os.TempDir(), "pw_slippymap_TestNewCachedTileProvider")
