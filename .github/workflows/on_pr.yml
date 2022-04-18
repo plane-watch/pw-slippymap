@@ -82,7 +82,7 @@ jobs:
       - uses: actions/checkout@v3
 
       - name: Run wasm test
-        run: GOOS=js GOARCH=wasm go test -race -exec=$(go env GOPATH)/bin/go_js_wasm_exec -v ./...
+        run: GOOS=js GOARCH=wasm go test -exec=$(go env GOPATH)/bin/go_js_wasm_exec -v ./...
 
   go-build-linux:
     needs: [go-test]
