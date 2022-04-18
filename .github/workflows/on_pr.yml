@@ -97,7 +97,7 @@ jobs:
 
       - name: Build
         run: |
-          GOOS=darwin GOARCH=${{ matrix.goarch }} go build
+          CGO_ENABLED=1 GOOS=darwin GOARCH=${{ matrix.goarch }} go build
 
   go-build-windows:
     needs: [go-test]
