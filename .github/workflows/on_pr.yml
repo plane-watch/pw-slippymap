@@ -9,8 +9,8 @@ on:
 
 jobs:
 
-  go-tests:
-    name: Go tests
+  go-test:
+    name: Go test
     strategy:
       fail-fast: true
       matrix:
@@ -34,7 +34,8 @@ jobs:
         with:
           run: go test -v ./...
   
-  go-tests-wasm:
+  go-test-wasm:
+    needs: [go-test]
     name: Go tests (WASM)
     runs-on: ubuntu-latest
     steps:
@@ -55,4 +56,27 @@ jobs:
 
       - name: Run wasm test
         run: GOOS=js GOARCH=wasm go test -exec=$(go env GOPATH)/bin/go_js_wasm_exec -v ./...
+
+  go-build-linux:
+    name: Go tests (WASM)
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: true
+      matrix:
+        goarch: [386, amd64, arm, arm64]
+    steps:
+
+      - name: Install Go
+        uses: actions/setup-go@v2
       
+      - uses: actions/checkout@v3
+
+      - name: Install dependencies for ubuntu-latest
+        if: ${{ matrix.os == 'ubuntu-latest' }}
+        run: |
+          sudo apt-get update
+          sudo apt-get install --no-install-recommends -y libgl-dev libxcursor-dev libxrandr-dev libxinerama-dev libxi-dev libxxf86vm-dev
+
+      - name: Build
+        run: |
+          GOOS=linux GOARCH=${{ matrix.goarch }} go build
