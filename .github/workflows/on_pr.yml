@@ -18,6 +18,9 @@ jobs:
     runs-on: ${{ matrix.os }}
     steps:
 
+      - name: Install Go
+        uses: actions/setup-go@v2
+
       - uses: actions/checkout@v3
 
       - name: Install dependencies for ubuntu-latest
@@ -30,4 +33,34 @@ jobs:
         uses: GabrielBB/xvfb-action@v1
         with:
           run: go test -v ./...
+  
+  go-tests-wasm:
+    name: Go tests (WASM)
+    runs-on: ubuntu-latest
+    steps:
+
+      - name: Install Go
+        uses: actions/setup-go@v2
+
+      - name: Install chrome
+        uses: browser-actions/setup-chrome@latest
+
+      - name: Install dep
+        run: go install github.com/agnivade/wasmbrowsertest@latest
+
+      - name: Setup wasmexec
+        run: mv $(go env GOPATH)/bin/wasmbrowsertest $(go env GOPATH)/bin/go_js_wasm_exec
+
+      - uses: actions/checkout@v3
+
+      # - name: Install dependencies for ubuntu-latest
+      #   if: ${{ matrix.os == 'ubuntu-latest' }}
+      #   run: |
+      #     sudo apt-get update
+      #     sudo apt-get install --no-install-recommends -y libgl-dev libxcursor-dev libxrandr-dev libxinerama-dev libxi-dev libxxf86vm-dev
+
+      - name: Run headless test
+        uses: GabrielBB/xvfb-action@v1
+        with:
+          run: GOOS=js GOARCH=wasm go test -v ./...
       
