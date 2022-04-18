@@ -17,6 +17,6 @@ jobs:
       - name: Install prereqs
         run: |
           sudo apt-get update
-          sudo apt-get install --no-install-recommends -y libxcursor-dev
+          sudo apt-get install --no-install-recommends -y libxcursor-dev libxrandr-dev
       - name: Run Go tests
         run: go test -v ./...
