@@ -1,6 +1,7 @@
 package slippymap
 
 import (
+	"errors"
 	"io/ioutil"
 	"os"
 	"path"
@@ -39,13 +40,8 @@ func TestNewCachedTileProvider(t *testing.T) {
 		t.Errorf("Expected: %s, got: %s", expectedPath, tilePath)
 	}
 
-	// prepare "faulty" OSMTileProvider
-	faultyOSMTileProvider := OSMTileProvider{
-		osm_url_prefix: 4,
-	}
-
 	// get cached tile provider
-	ctp = NewCachedTileProvider(dir, &faultyOSMTileProvider)
+	ctp = NewCachedTileProvider(dir, &FaultyTileProvider{})
 
 	// request a tile
 	tilePath, err = ctp.GetTileAddress(2, 3, 4)
@@ -55,4 +51,10 @@ func TestNewCachedTileProvider(t *testing.T) {
 		t.Errorf("Expected an error, got none")
 	}
 
+}
+
+type FaultyTileProvider struct{}
+
+func (FaultyTileProvider) GetTileAddress(int, int, int) (string, error) {
+	return "", errors.New("oh no an error")
 }
