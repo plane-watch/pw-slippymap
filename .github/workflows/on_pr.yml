@@ -14,5 +14,9 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
+      - name: Install prereqs
+        run: |
+          apt-get update
+          apt-get install --no-install-recommends -y libxcursor-dev
       - name: Run Go tests
         run: go test -v ./...
