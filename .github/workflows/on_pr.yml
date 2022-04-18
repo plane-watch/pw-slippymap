@@ -13,10 +13,13 @@ jobs:
     name: Go tests
     runs-on: ubuntu-latest
     steps:
+
       - uses: actions/checkout@v3
+
       - name: Install prereqs
         run: |
           sudo apt-get update
-          sudo apt-get install --no-install-recommends -y libxcursor-dev libxrandr-dev
+          sudo apt-get install --no-install-recommends -y libxcursor-dev libxrandr-dev libxinerama-dev
+
       - name: Run Go tests
         run: go test -v ./...
