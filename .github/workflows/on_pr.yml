@@ -35,7 +35,6 @@ jobs:
           run: go test -v ./...
   
   go-test-wasm:
-    needs: [go-test]
     name: Go tests (WASM)
     runs-on: ubuntu-latest
     steps:
@@ -58,7 +57,8 @@ jobs:
         run: GOOS=js GOARCH=wasm go test -exec=$(go env GOPATH)/bin/go_js_wasm_exec -v ./...
 
   go-build-linux:
-    name: Go tests (WASM)
+    needs: [go-test]
+    name: "Go build: Linux"
     runs-on: ubuntu-latest
     strategy:
       fail-fast: true
