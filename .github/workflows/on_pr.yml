@@ -28,11 +28,8 @@ jobs:
         with:
           run: go test -v -covermode=count -coverprofile=coverage.out ./...
 
-      - name: Publish Code Coverage
-        uses: actions/upload-artifact@v2
-        with:
-          name: Code Covarege Report
-          path: coverage.out
+      - name: Upload coverage to Codecov
+        uses: codecov/codecov-action@v2
 
 
   go-test:
