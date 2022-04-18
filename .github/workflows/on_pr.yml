@@ -11,12 +11,17 @@ jobs:
 
   go-tests:
     name: Go tests
-    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: true
+      matrix:
+        os: [macos-latest, ubuntu-latest, windows-latest]
+    runs-on: ${{ matrix.os }}
     steps:
 
       - uses: actions/checkout@v3
 
-      - name: Install prereqs
+      - name: Install dependencies for ubuntu-latest
+        if: ${{ matrix.os == "ubuntu-latest"}}
         run: |
           sudo apt-get update
           sudo apt-get install --no-install-recommends -y libgl-dev libxcursor-dev libxrandr-dev libxinerama-dev libxi-dev libxxf86vm-dev
@@ -25,6 +30,4 @@ jobs:
         uses: GabrielBB/xvfb-action@v1
         with:
           run: go test -v ./...
-
-      # - name: Run Go tests
-      #   run: go test -v ./...
+      
