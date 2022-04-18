@@ -8,7 +8,6 @@ import (
 	"log"
 	"math"
 	"path"
-	"sync"
 
 	"github.com/hajimehoshi/ebiten/v2"
 	"github.com/hajimehoshi/ebiten/v2/ebitenutil"
@@ -68,29 +67,23 @@ func (sm *SlippyMap) Draw(screen *ebiten.Image) {
 	screen.DrawImage(sm.zoomPrevLevelImg, nil)
 
 	// draws all tiles onto screen
-	wg := sync.WaitGroup{}
 
-	for _, tile := range sm.tiles {
-		wg.Add(1)
-		go func(t *MapTile) {
-			dio := &ebiten.DrawImageOptions{}
+	for _, t := range sm.tiles {
+		dio := &ebiten.DrawImageOptions{}
 
-			// move the image where it needs to be in the window
-			dio.GeoM.Translate(float64((*t).offsetX), float64((*t).offsetY))
+		// move the image where it needs to be in the window
+		dio.GeoM.Translate(float64((*t).offsetX), float64((*t).offsetY))
 
-			// adjust transparency (for fade-in of tiles)
-			dio.ColorM.Scale(1, 1, 1, (*t).alpha)
+		// adjust transparency (for fade-in of tiles)
+		dio.ColorM.Scale(1, 1, 1, (*t).alpha)
 
-			// draw the tile
-			screen.DrawImage(t.img, dio)
+		// draw the tile
+		screen.DrawImage(t.img, dio)
 
-			// debugging: print the OSM tile X/Y/Z
-			dbgText := fmt.Sprintf("%d/%d/%d", (*t).osmX, (*t).osmY, (*t).zoomLevel)
-			ebitenutil.DebugPrintAt(screen, dbgText, (*t).offsetX, (*t).offsetY)
-			wg.Done()
-		}(tile)
+		// debugging: print the OSM tile X/Y/Z
+		dbgText := fmt.Sprintf("%d/%d/%d", (*t).osmX, (*t).osmY, (*t).zoomLevel)
+		ebitenutil.DebugPrintAt(screen, dbgText, (*t).offsetX, (*t).offsetY)
 	}
-	wg.Wait()
 }
 
 func (sm *SlippyMap) Update(deltaOffsetX, deltaOffsetY int, forceUpdate bool) {
@@ -110,25 +103,19 @@ func (sm *SlippyMap) Update(deltaOffsetX, deltaOffsetY int, forceUpdate bool) {
 	}
 
 	// tile reposition & alpha increase if needed
-	wgAlpha := sync.WaitGroup{}
-	for _, tile := range sm.tiles {
-		wgAlpha.Add(1)
-		go func(t *MapTile) {
-			// update offset if required (ie, user is dragging the map around)
-			if (deltaOffsetX != 0 && deltaOffsetY != 0) || forceUpdate {
-				t.offsetX = t.offsetX + deltaOffsetX
-				t.offsetY = t.offsetY + deltaOffsetY
-				// sm.tiles[i] = (*t)
-			}
+	for _, t := range sm.tiles {
+		// update offset if required (ie, user is dragging the map around)
+		if (deltaOffsetX != 0 && deltaOffsetY != 0) || forceUpdate {
+			t.offsetX = t.offsetX + deltaOffsetX
+			t.offsetY = t.offsetY + deltaOffsetY
+			// sm.tiles[i] = (*t)
+		}
 
-			// increase alpha channel (for fade in, if needed)
-			if (*t).alpha < 1 {
-				(*t).alpha = (*t).alpha + TILE_FADEIN_ALPHA_PER_TICK
-			}
-			wgAlpha.Done()
-		}(tile)
+		// increase alpha channel (for fade in, if needed)
+		if (*t).alpha < 1 {
+			(*t).alpha = (*t).alpha + TILE_FADEIN_ALPHA_PER_TICK
+		}
 	}
-	wgAlpha.Wait()
 
 	// new tiles created if required (just do one tile per update)
 	makeAnother := true
@@ -303,7 +290,7 @@ func (sm *SlippyMap) makeTile(osmX, osmY, offsetX, offsetY int) {
 
 	go func() {
 		// get tile artwork
-		tilePath, err := sm.tileProvider.GetTileAddress(osmX, osmY, sm.zoomLevel)
+		tilePath, err := sm.tileProvider.GetTileAddress(t.osmX, t.osmY, t.zoomLevel)
 		if err != nil {
 			log.Fatal(err)
 		}
