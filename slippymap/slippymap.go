@@ -7,7 +7,6 @@ import (
 	_ "image/png"
 	"log"
 	"math"
-	"path"
 
 	"github.com/hajimehoshi/ebiten/v2"
 	"github.com/hajimehoshi/ebiten/v2/ebitenutil"
@@ -44,8 +43,6 @@ type SlippyMap struct {
 	offsetMinimumY int // minimum Y value for map tiles
 	offsetMaximumX int // maximum X value for map tiles
 	offsetMaximumY int // maximum Y value for map tiles
-
-	placeholderArtwork *ebiten.Image // placeholder artwork for map tile
 
 	tileProvider TileProvider
 }
@@ -441,22 +438,14 @@ func (sm *SlippyMap) SetZoomLevel(zoomLevel int, lat_deg, long_deg float64) (new
 
 func NewSlippyMap(mapWidthPx, mapHeightPx, zoomLevel int, centreLat, centreLong float64, tileProvider TileProvider) (sm SlippyMap, err error) {
 
-	// load tile placeholder artwork
-	tilePath := path.Join("assets", "map_tile_not_loaded.png")
-	img, _, err := ebitenutil.NewImageFromFile(tilePath)
-	if err != nil {
-		log.Fatal(err)
-	}
-
 	// determine the centre tile details
 	centreTileOSMX, centreTileOSMY, pixelOffsetX, pixelOffsetY := gpsCoordsToTileInfo(centreLat, centreLong, zoomLevel)
 
 	// create a new SlippyMap to return
 	sm = SlippyMap{
-		zoomLevel:          zoomLevel,
-		zoomPrevLevelImg:   ebiten.NewImage(mapWidthPx, mapHeightPx),
-		placeholderArtwork: img,
-		tileProvider:       tileProvider,
+		zoomLevel:        zoomLevel,
+		zoomPrevLevelImg: ebiten.NewImage(mapWidthPx, mapHeightPx),
+		tileProvider:     tileProvider,
 	}
 
 	// update size

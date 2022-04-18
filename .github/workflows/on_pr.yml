@@ -9,14 +9,46 @@ on:
 
 jobs:
 
-  go-tests:
-    name: Go tests
+  go-coverage:
+    name: Code Coverage
     runs-on: ubuntu-latest
     steps:
+      - name: Install Go
+        uses: actions/setup-go@v2
 
       - uses: actions/checkout@v3
 
-      - name: Install prereqs
+      - name: Install dependencies for ubuntu-latest
+        run: |
+          sudo apt-get update
+          sudo apt-get install --no-install-recommends -y libgl-dev libxcursor-dev libxrandr-dev libxinerama-dev libxi-dev libxxf86vm-dev
+
+      - name: Run headless test
+        uses: GabrielBB/xvfb-action@v1
+        with:
+          run: go test -v -covermode=count -coverprofile=coverage.out ./...
+
+      - name: Upload coverage to Codecov
+        uses: codecov/codecov-action@v2
+        with:
+          files: coverage.out
+
+  go-test:
+    name: Go test
+    strategy:
+      fail-fast: true
+      matrix:
+        os: [macos-latest, ubuntu-latest, windows-latest]
+    runs-on: ${{ matrix.os }}
+    steps:
+
+      - name: Install Go
+        uses: actions/setup-go@v2
+
+      - uses: actions/checkout@v3
+
+      - name: Install dependencies for ubuntu-latest
+        if: ${{ matrix.os == 'ubuntu-latest' }}
         run: |
           sudo apt-get update
           sudo apt-get install --no-install-recommends -y libgl-dev libxcursor-dev libxrandr-dev libxinerama-dev libxi-dev libxxf86vm-dev
@@ -25,6 +57,104 @@ jobs:
         uses: GabrielBB/xvfb-action@v1
         with:
           run: go test -v ./...
+  
+  go-test-wasm:
+    name: Go test (WASM)
+    runs-on: ubuntu-latest
+    steps:
 
-      # - name: Run Go tests
-      #   run: go test -v ./...
+      - name: Install Go
+        uses: actions/setup-go@v2
+
+      - name: Install chrome
+        uses: browser-actions/setup-chrome@latest
+
+      - name: Install dep
+        run: go install github.com/agnivade/wasmbrowsertest@latest
+
+      - name: Setup wasmexec
+        run: mv $(go env GOPATH)/bin/wasmbrowsertest $(go env GOPATH)/bin/go_js_wasm_exec
+
+      - uses: actions/checkout@v3
+
+      - name: Run wasm test
+        run: GOOS=js GOARCH=wasm go test -exec=$(go env GOPATH)/bin/go_js_wasm_exec -v ./...
+
+  go-build-linux:
+    needs: [go-test]
+    name: "Test Go build: Linux"
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: true
+      matrix:
+        goarch: [amd64]
+    steps:
+
+      - name: Install Go
+        uses: actions/setup-go@v2
+      
+      - uses: actions/checkout@v3
+
+      - name: Install dependencies for ubuntu-latest
+        run: |
+          sudo apt-get update
+          sudo apt-get install --no-install-recommends -y libgl-dev libxcursor-dev libxrandr-dev libxinerama-dev libxi-dev libxxf86vm-dev
+
+      - name: Build
+        run: |
+          GOOS=linux GOARCH=${{ matrix.goarch }} go build
+
+  go-build-macos:
+    needs: [go-test]
+    name: "Test Go build: MacOS"
+    runs-on: macos-latest
+    strategy:
+      fail-fast: true
+      matrix:
+        goarch: [amd64, arm64]
+    steps:
+
+      - name: Install Go
+        uses: actions/setup-go@v2
+      
+      - uses: actions/checkout@v3
+
+      - name: Build
+        run: |
+          CGO_ENABLED=1 GOOS=darwin GOARCH=${{ matrix.goarch }} go build
+
+  go-build-windows:
+    needs: [go-test]
+    name: "Test Go build: Windows"
+    runs-on: windows-latest
+    strategy:
+      fail-fast: true
+      matrix:
+        goarch: [amd64]
+    steps:
+
+      - name: Install Go
+        uses: actions/setup-go@v2
+      
+      - uses: actions/checkout@v3
+
+      - name: Build
+        env:
+          GOARCH: ${{ matrix.goarch }}
+        run: |
+          go build
+
+  go-build-wasm:
+    needs: [go-test-wasm]
+    name: "Test Go build: WASM"
+    runs-on: ubuntu-latest
+    steps:
+
+      - name: Install Go
+        uses: actions/setup-go@v2
+      
+      - uses: actions/checkout@v3
+
+      - name: Build
+        run: |
+          GOOS=js GOARCH=wasm go build
