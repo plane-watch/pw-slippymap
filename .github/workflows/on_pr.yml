@@ -35,7 +35,7 @@ jobs:
           run: go test -v ./...
   
   go-test-wasm:
-    name: Go tests (WASM)
+    name: Go test (WASM)
     runs-on: ubuntu-latest
     steps:
 
@@ -122,8 +122,6 @@ jobs:
     needs: [go-test-wasm]
     name: "Go build: WASM"
     runs-on: ubuntu-latest
-    strategy:
-      fail-fast: true
     steps:
 
       - name: Install Go
