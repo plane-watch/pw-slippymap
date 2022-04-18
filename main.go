@@ -329,7 +329,7 @@ func main() {
 // If we are running in WASM/JS, then the browser does all relevant tile caching for us.
 // If running in desktop app mode, we need to cache the tiles ourselves
 func tileProviderForOS() (slippymap.TileProvider, error) {
-	if runtime.GOOS == "js" || false {
+	if runtime.GOOS == "js" {
 		return &slippymap.OSMTileProvider{}, nil
 	}
 
