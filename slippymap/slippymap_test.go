@@ -9,44 +9,128 @@ import (
 )
 
 const (
-	INIT_CENTRE_LAT  = -31.9523 // initial map centre lat
-	INIT_CENTRE_LONG = 115.8613 // initial map centre long
-	INIT_ZOOM_LEVEL  = 9        // initial OSM zoom level
+	INIT_CENTRE_LAT   = -31.9523 // initial map centre lat
+	INIT_CENTRE_LONG  = 115.8613 // initial map centre long
+	INIT_ZOOM_LEVEL   = 15       // initial OSM zoom level
+	INIT_CENTRE_XTILE = 26929    // initial centre tile X (at zoom level 15)
+	INIT_CENTRE_YTILE = 19456    // initial centre tile Y (at zoom level 15)
+	SLIPPYMAP_WIDTH   = 1024     // slippymap width in pixels
+	SLIPPYMAP_HEIGHT  = 768      // slippymap height in pixels
 )
 
 func TestSlippyMap(t *testing.T) {
 
+	// declare variables
+	var (
+		tileProvider TileProvider
+		smInitial    SlippyMap
+		err          error
+	)
+
 	// get tile provider
-	tileProvider, err := TileProviderForOS()
-	require.NoError(t, err, "TileProviderForOS returned error")
+	t.Run("Test TileProviderForOS", func(t *testing.T) {
+		tileProvider, err = TileProviderForOS()
+		require.NoError(t, err, "TileProviderForOS returned error")
+	})
 
 	// test NewSlippyMap
-	smInitial, err := NewSlippyMap(1024, 1024, INIT_ZOOM_LEVEL, INIT_CENTRE_LAT, INIT_CENTRE_LONG, tileProvider)
-	require.NoError(t, err, "NewSlippyMap returned error")
+	t.Run("Test NewSlippyMap", func(t *testing.T) {
+		smInitial, err = NewSlippyMap(SLIPPYMAP_WIDTH, SLIPPYMAP_HEIGHT, INIT_ZOOM_LEVEL, INIT_CENTRE_LAT, INIT_CENTRE_LONG, tileProvider)
+		require.NoError(t, err, "NewSlippyMap returned error")
+	})
+
+	// test GetTileAtPixel
+	t.Run("Test GetTileAtPixel", func(t *testing.T) {
+		osmX, osmY, zoomLevel, err := smInitial.GetTileAtPixel(SLIPPYMAP_WIDTH/2, SLIPPYMAP_HEIGHT/2)
+		require.NoError(t, err, "GetTileAtPixel returned error")
+		assert.Equal(t, INIT_ZOOM_LEVEL, zoomLevel, "GetTileAtPixel returned unexpected zoom level")
+		assert.Equal(t, INIT_CENTRE_XTILE, osmX, "GetTileAtPixel returned unexpected X")
+		assert.Equal(t, INIT_CENTRE_YTILE, osmY, "GetTileAtPixel returned unexpected Y")
+	})
+
+	// test GetLatLongAtPixel
+	// TODO: I'm still not 100% convinced that GetLatLongAtPixel is as accurate as it should be...
+	//       Maybe someone better at maths can double-check this...
+	t.Run("Test GetLatLongAtPixel", func(t *testing.T) {
+		lat_deg, long_deg, err := smInitial.GetLatLongAtPixel(SLIPPYMAP_WIDTH/2, SLIPPYMAP_HEIGHT/2)
+		require.NoError(t, err, "GetLatLongAtPixel returned error")
+
+		// round to 3 decimal places (to account for zoom level error)
+		lat_deg = math.Round(lat_deg*1000) / 1000
+		long_deg = math.Round(long_deg*1000) / 1000
+
+		// check results
+		assert.Equal(t, math.Round(INIT_CENTRE_LAT*1000)/1000, lat_deg, "GetLatLongAtPixel returned unexpected latitude")
+		assert.Equal(t, math.Round(INIT_CENTRE_LONG*1000)/1000, long_deg, "GetLatLongAtPixel returned unexpected longitude")
+	})
+
+	// test LatLongToPixel
+	t.Run("Test LatLongToPixel", func(t *testing.T) {
+		x, y, err := smInitial.LatLongToPixel(INIT_CENTRE_LAT, INIT_CENTRE_LONG)
+		require.NoError(t, err, "LatLongToPixel returned error")
+		assert.Equal(t, SLIPPYMAP_WIDTH/2, x, "LatLongToPixel returned unexpected x")
+		assert.Equal(t, SLIPPYMAP_HEIGHT/2, y, "LatLongToPixel returned unexpected y")
+	})
+
+	// test Update
+	t.Run("Test Update", func(t *testing.T) {
+		for i := 0; i <= 100; i++ {
+			smInitial.Update(0, 0, true)
+		}
+	})
+
+	// test Update (moving map off screen)
+	t.Run("Test Update moving", func(t *testing.T) {
+		smInitial.Update(-SLIPPYMAP_WIDTH, -SLIPPYMAP_HEIGHT, true)
+	})
 
 	// test GetZoomLevel
-	zl := smInitial.GetZoomLevel()
-	assert.Equal(t, INIT_ZOOM_LEVEL, zl, "GetZoomLevel result not expected")
+	t.Run("Test GetZoomLevel", func(t *testing.T) {
+		zl := smInitial.GetZoomLevel()
+		assert.Equal(t, INIT_ZOOM_LEVEL, zl, "GetZoomLevel result not expected")
+	})
 
-	// test SetZoomLevel
-	_, err = smInitial.SetZoomLevel(INIT_ZOOM_LEVEL+1, INIT_CENTRE_LAT, INIT_CENTRE_LONG)
-	require.NoError(t, err, "SetZoomLevel returned error")
+	t.Run("Test SetZoomLevel", func(t *testing.T) {
+		// test SetZoomLevel
+		_, err = smInitial.SetZoomLevel(INIT_ZOOM_LEVEL+1, INIT_CENTRE_LAT, INIT_CENTRE_LONG)
+		require.NoError(t, err, "SetZoomLevel returned error")
 
-	// test SetZoomLevel error
-	_, err = smInitial.SetZoomLevel(ZOOM_LEVEL_MAX+1, INIT_CENTRE_LAT, INIT_CENTRE_LONG)
-	require.Error(t, err, "SetZoomLevel did not return an error when one was expected")
+		// test SetZoomLevel error
+		_, err = smInitial.SetZoomLevel(ZOOM_LEVEL_MAX+1, INIT_CENTRE_LAT, INIT_CENTRE_LONG)
+		require.Error(t, err, "SetZoomLevel did not return an error when one was expected")
 
-	// test SetZoomLevel error
-	_, err = smInitial.SetZoomLevel(ZOOM_LEVEL_MIN-1, INIT_CENTRE_LAT, INIT_CENTRE_LONG)
-	require.Error(t, err, "SetZoomLevel did not return an error when one was expected")
+		// test SetZoomLevel error
+		_, err = smInitial.SetZoomLevel(ZOOM_LEVEL_MIN-1, INIT_CENTRE_LAT, INIT_CENTRE_LONG)
+		require.Error(t, err, "SetZoomLevel did not return an error when one was expected")
+	})
 
 	// test ZoomIn
-	_, err = smInitial.ZoomIn(INIT_CENTRE_LAT, INIT_CENTRE_LONG)
-	require.NoError(t, err, "ZoomIn returned error")
+	t.Run("Test ZoomIn", func(t *testing.T) {
+		_, err = smInitial.ZoomIn(INIT_CENTRE_LAT, INIT_CENTRE_LONG)
+		require.NoError(t, err, "ZoomIn returned error")
+	})
 
 	// test ZoomOut
-	_, err = smInitial.ZoomOut(INIT_CENTRE_LAT, INIT_CENTRE_LONG)
-	require.NoError(t, err, "ZoomOut returned error")
+	t.Run("Test ZoomOut", func(t *testing.T) {
+		_, err = smInitial.ZoomOut(INIT_CENTRE_LAT, INIT_CENTRE_LONG)
+		require.NoError(t, err, "ZoomOut returned error")
+	})
+
+	// test GetSize
+	t.Run("Test GetSize", func(t *testing.T) {
+		mapWidthPx, mapHeightPx := smInitial.GetSize()
+		assert.Equal(t, SLIPPYMAP_WIDTH, mapWidthPx, "GetSize returned unexpected width")
+		assert.Equal(t, SLIPPYMAP_HEIGHT, mapHeightPx, "GetSize returned unexpected height")
+	})
+
+	// test SetSize
+	t.Run("Test GetSize", func(t *testing.T) {
+		smInitial.SetSize(SLIPPYMAP_WIDTH+500, SLIPPYMAP_HEIGHT+500)
+		mapWidthPx, mapHeightPx := smInitial.GetSize()
+		assert.Equal(t, SLIPPYMAP_WIDTH+500, mapWidthPx, "GetSize returned unexpected width after SetSize")
+		assert.Equal(t, SLIPPYMAP_HEIGHT+500, mapHeightPx, "GetSize returned unexpected height after SetSize")
+	})
+
 }
 
 func TestGpsCoordsToTileInfo(t *testing.T) {

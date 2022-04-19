@@ -19,21 +19,23 @@ func TestMakeDirIfNotExist(t *testing.T) {
 		t.SkipNow()
 	}
 
-	// create temp dir
-	dir, err := ioutil.TempDir(os.TempDir(), "pw_slippymap_TestMakeDirIfNotExist")
-	if err != nil {
-		t.Error(err)
-	}
-	defer os.RemoveAll(dir)
+	t.Run("Test creating directory", func(t *testing.T) {
+		// create temp dir
+		dir, err := ioutil.TempDir(os.TempDir(), "pw_slippymap_TestMakeDirIfNotExist")
+		if err != nil {
+			t.Error(err)
+		}
+		defer os.RemoveAll(dir)
 
-	testDir := path.Join(dir, "testdir")
+		testDir := path.Join(dir, "testdir")
 
-	// test MakeDirIfNotExist
-	err = MakeDirIfNotExist(testDir, 0700)
-	require.NoError(t, err)
+		// test MakeDirIfNotExist
+		err = MakeDirIfNotExist(testDir, 0700)
+		require.NoError(t, err)
 
-	// ensure dir exists and mode is 0700
-	fileInfo, err := os.Stat(testDir)
-	require.NoError(t, err)
-	assert.Equal(t, fs.FileMode(0700)+fs.ModeDir, fileInfo.Mode())
+		// ensure dir exists and mode is 0700
+		fileInfo, err := os.Stat(testDir)
+		require.NoError(t, err)
+		assert.Equal(t, fs.FileMode(0700)+fs.ModeDir, fileInfo.Mode())
+	})
 }
