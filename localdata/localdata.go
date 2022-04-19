@@ -11,13 +11,13 @@ func MakeDirIfNotExist(dir string, perm fs.FileMode) error {
 	// the mode bits defined by 'perm' are applied when the dir is created
 
 	if _, err := os.Stat(dir); os.IsNotExist(err) {
-		log.Print(dir, " does not exist, creating")
+		log.Printf("Directory '%s' does not exist, creating", dir)
 		err := os.Mkdir(dir, perm)
 		if err != nil {
 			return err
 		}
 	} else {
-		log.Print(dir, " already exists, not creating")
+		log.Printf("Directory '%s' already exists, not creating", dir)
 	}
 	return nil
 }

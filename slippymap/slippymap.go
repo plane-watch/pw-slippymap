@@ -438,6 +438,8 @@ func (sm *SlippyMap) SetZoomLevel(zoomLevel int, lat_deg, long_deg float64) (new
 
 func NewSlippyMap(mapWidthPx, mapHeightPx, zoomLevel int, centreLat, centreLong float64, tileProvider TileProvider) (sm SlippyMap, err error) {
 
+	log.Printf("Initialising SlippyMap at %0.4f/%0.4f, zoom level %d", centreLat, centreLong, zoomLevel)
+
 	// determine the centre tile details
 	centreTileOSMX, centreTileOSMY, pixelOffsetX, pixelOffsetY := gpsCoordsToTileInfo(centreLat, centreLong, zoomLevel)
 
