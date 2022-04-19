@@ -34,8 +34,8 @@ var (
 	dbgMouseOverTileText string
 	dbgMouseLatLongText  string
 
-	// Map of markers
-	markerImages map[int]markers.Marker
+	// Map of markers (key = ICAO code), ref: https://en.wikipedia.org/wiki/List_of_aircraft_type_designators
+	markerImages map[string]markers.Marker
 
 	dbgMarkerRotateAngle float64
 )
@@ -115,8 +115,8 @@ func (g *Game) Update() error {
 		g.slippymap.Update(0, 0, false)
 	}
 
-	// TEMPORARY: rotate the planes during testing
-	dbgMarkerRotateAngle += 1
+	// TEMPORARY/TESTING: rotate the plane sprites for testing
+	dbgMarkerRotateAngle += 0.5
 	if dbgMarkerRotateAngle >= 360 {
 		dbgMarkerRotateAngle = 0
 	}
@@ -183,16 +183,28 @@ func (g *Game) Draw(screen *ebiten.Image) {
 	ebitenutil.DebugPrintAt(screen, dbgNumTilesText, 0, 75)
 
 	// draw aircraft (TESTING)
-	m := markerImages[markers.AIRBUS_A380]
-	do := m.MarkerDrawOpts(dbgMarkerRotateAngle, 200, 0)
+	m := markerImages["A388"]
+	do := m.MarkerDrawOpts(dbgMarkerRotateAngle, 200, 5)
 	screen.DrawImage(m.Img, &do)
 
-	m = markerImages[markers.FOKKER_F100]
-	do = m.MarkerDrawOpts(dbgMarkerRotateAngle, 257, 0)
+	m = markerImages["F100"]
+	do = m.MarkerDrawOpts(dbgMarkerRotateAngle, 257, 5)
 	screen.DrawImage(m.Img, &do)
 
-	m = markerImages[markers.PILATUS_PC12]
-	do = m.MarkerDrawOpts(dbgMarkerRotateAngle, 300, 0)
+	m = markerImages["PC12"]
+	do = m.MarkerDrawOpts(dbgMarkerRotateAngle, 300, 5)
+	screen.DrawImage(m.Img, &do)
+
+	m = markerImages["SF34"]
+	do = m.MarkerDrawOpts(dbgMarkerRotateAngle, 350, 5)
+	screen.DrawImage(m.Img, &do)
+
+	m = markerImages["E190"]
+	do = m.MarkerDrawOpts(dbgMarkerRotateAngle, 400, 5)
+	screen.DrawImage(m.Img, &do)
+
+	m = markerImages["DH8D"]
+	do = m.MarkerDrawOpts(dbgMarkerRotateAngle, 450, 5)
 	screen.DrawImage(m.Img, &do)
 
 }
@@ -222,7 +234,14 @@ func failFatally(err error) {
 }
 
 func main() {
+
+	var err error
+
 	log.Print("Started")
+
+	// load sprites
+	markerImages, err = markers.InitMarkers()
+	failFatally(err)
 
 	// determine starting window size
 	// 80% of fullscreen
@@ -234,12 +253,6 @@ func main() {
 	ebiten.SetWindowResizable(true)
 	ebiten.SetWindowSize(windowWidth, windowHeight)
 	ebiten.SetWindowTitle("plane.watch")
-
-	// // load sprites
-	// loadVectorSprites()
-	var err error
-	markerImages, err = markers.InitMarkers()
-	failFatally(err)
 
 	tileProvider, err := slippymap.TileProviderForOS()
 	if err != nil {
@@ -258,7 +271,13 @@ func main() {
 	}
 
 	// run
+	defer endProgram()
+	log.Println("Starting UI")
 	if err := ebiten.RunGame(g); err != nil {
 		log.Fatal(err)
 	}
+}
+
+func endProgram() {
+	log.Println("Quitting")
 }

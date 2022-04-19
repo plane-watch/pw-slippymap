@@ -2,6 +2,7 @@ package markers
 
 import (
 	"errors"
+	"math"
 	"regexp"
 	"strconv"
 
@@ -56,9 +57,9 @@ var (
 
 // SVG struct to assist with building the vector.Path
 type SVG struct {
-	x, y               float64 // the current x/y coordinates of the "pen"
-	startx, starty     float64 // the initial x/y coordinates of the "pen"
-	offsetX, offsetY   float64
+	x, y               float64     // the current x/y coordinates of the "pen"
+	startx, starty     float64     // the initial x/y coordinates of the "pen"
+	offsetX, offsetY   float64     // the offset x/y coordinates
 	maxx, maxy         float64     // maximum x & y
 	currentPathCommand int         // the current SVG command
 	scale              float64     // the scale factor. Points from SVG are multiplied by this figure
@@ -390,7 +391,6 @@ func consumeNumber(d string) (numberFound bool, number float64, remaining_d stri
 
 // TODO: this is way too many args - maybe send a struct
 func imgFromSVG(
-	w, h int,
 	scale float64,
 	d string,
 	pathStroked, pathFilled, bgFilled bool,
@@ -412,11 +412,13 @@ func imgFromSVG(
 	svg := SVG{
 		x:                  offsetX,
 		y:                  offsetY,
+		startx:             offsetX,
+		starty:             offsetY,
 		offsetX:            offsetX,
 		offsetY:            offsetY,
 		currentPathCommand: SVG_PATH_CMD_None,
 		scale:              scale,
-		dc:                 gg.NewContext(w, h),
+		dc:                 gg.NewContext(500, 500),
 	}
 
 	// fill the background if required
@@ -437,7 +439,7 @@ func imgFromSVG(
 		var err error
 		commandFound, commandStr, d, err = consumeCommand(d)
 		if err != nil {
-			return ebiten.NewImage(w, h), err
+			return ebiten.NewImage(1, 1), err
 		}
 		if commandFound {
 			// fmt.Println(commandStr)
@@ -481,7 +483,7 @@ func imgFromSVG(
 			case "Z", "z":
 				svg.currentPathCommand = SVG_PATH_CMD_ClosePath
 			default:
-				return ebiten.NewImage(w, h), errors.New("Unknown SVG command")
+				return ebiten.NewImage(1, 1), errors.New("Unknown SVG command")
 			}
 		}
 
@@ -513,10 +515,10 @@ func imgFromSVG(
 			svg.closePath()
 		default:
 			// fmt.Println(svg.currentPathCommand)
-			return ebiten.NewImage(w, h), errors.New("SVG error")
+			return ebiten.NewImage(1, 1), errors.New("SVG error")
 		}
 		if err != nil {
-			return ebiten.NewImage(w, h), err
+			return ebiten.NewImage(1, 1), err
 		}
 	}
 
@@ -533,7 +535,11 @@ func imgFromSVG(
 		svg.dc.Fill()
 	}
 
-	// fmt.Println(math.Ceil(svg.maxx+offsetX), math.Ceil(svg.maxy+offsetY))
+	// "crop" the image to its exact size
+	newImg := ebiten.NewImageFromImage(svg.dc.Image())
+	img = ebiten.NewImage(int(math.Ceil(svg.maxx)), int(math.Ceil(svg.maxy)))
+	img.DrawImage(newImg, nil)
 
-	return ebiten.NewImageFromImage(svg.dc.Image()), nil
+	// return!
+	return img, nil
 }
