@@ -1,37 +1,23 @@
 package localdata
 
 import (
+	"io/fs"
 	"log"
 	"os"
 )
 
-func SetupRoot(pathRoot string) error {
+func MakeDirIfNotExist(dir string, perm fs.FileMode) error {
+	// makes a directory 'dir' if the directory does not already exist
+	// the mode bits defined by 'perm' are applied when the dir is created
 
-	// set up pathRoot
-	if _, err := os.Stat(pathRoot); os.IsNotExist(err) {
-		log.Print(pathRoot, " does not exist, creating")
-		err := os.Mkdir(pathRoot, 0700)
+	if _, err := os.Stat(dir); os.IsNotExist(err) {
+		log.Print(dir, " does not exist, creating")
+		err := os.Mkdir(dir, perm)
 		if err != nil {
 			return err
 		}
 	} else {
-		log.Print(pathRoot, " already exists, not creating")
+		log.Print(dir, " already exists, not creating")
 	}
 	return nil
-}
-
-func SetupTileCache(pathTileCache string) error {
-
-	// set up pathTileCache
-	if _, err := os.Stat(pathTileCache); os.IsNotExist(err) {
-		log.Print(pathTileCache, " does not exist, creating")
-		err := os.Mkdir(pathTileCache, 0700)
-		if err != nil {
-			return err
-		}
-	} else {
-		log.Print(pathTileCache, " already exists, not creating")
-	}
-	return nil
-
 }
