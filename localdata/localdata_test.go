@@ -32,6 +32,7 @@ func TestMakeDirIfNotExist(t *testing.T) {
 		// test MakeDirIfNotExist
 		err = MakeDirIfNotExist(testDir, 0700)
 		require.NoError(t, err)
+		defer os.RemoveAll(testDir)
 
 		// ensure dir exists and mode is 0700
 		fileInfo, err := os.Stat(testDir)
@@ -41,5 +42,9 @@ func TestMakeDirIfNotExist(t *testing.T) {
 		if runtime.GOOS != "windows" {
 			assert.Equal(t, fs.FileMode(0700)+fs.ModeDir, fileInfo.Mode())
 		}
+
+		// test MakeDirIfNotExist on a directory that already exists
+		err = MakeDirIfNotExist(testDir, 0700)
+		require.NoError(t, err)
 	})
 }
