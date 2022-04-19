@@ -1,7 +1,6 @@
 package slippymap
 
 import (
-	"fmt"
 	"log"
 	"os"
 	"path"
@@ -21,7 +20,6 @@ func TileProviderForOS() (TileProvider, error) {
 	if err != nil {
 		log.Fatal(err)
 	}
-	fmt.Println("User home dir:", userHomeDir)
 
 	// create directory structure $HOME/.plane.watch if it doesn't exist
 	pathRoot := path.Join(userHomeDir, ".plane.watch")

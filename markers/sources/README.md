@@ -2,6 +2,10 @@
 
 This directory contains Inkscape formatted SVGs.
 
+## File Naming Convention
+
+Files in this folder are named as: `ICAO (Model)`, where ICAO and Model is the code from the "ICAO aircraft type designators" table here: <https://en.wikipedia.org/wiki/List_of_aircraft_type_designators>
+
 ## Process
 
 * Load Inkscape.
@@ -11,3 +15,4 @@ This directory contains Inkscape formatted SVGs.
   * Go to Edit > XML Editor.
   * Find the XML `svg:path` elements.
   * Copy/paste the `d` value.
+  * If any values are scientific notation (eg: `-1e-9`), these must be manually removed and swapped out with `0` for now...
