@@ -25,14 +25,14 @@ func TileProviderForOS() (TileProvider, error) {
 
 	// create directory structure $HOME/.plane.watch if it doesn't exist
 	pathRoot := path.Join(userHomeDir, ".plane.watch")
-	err = localdata.SetupRoot(pathRoot)
+	err = localdata.MakeDirIfNotExist(pathRoot, 0700)
 	if err != nil {
 		log.Fatal(err)
 	}
 
 	// create directory structure $HOME/.plane.watch/tilecache if it doesn't exist
 	pathTileCache := path.Join(pathRoot, "tilecache")
-	err = localdata.SetupTileCache(pathTileCache)
+	err = localdata.MakeDirIfNotExist(pathTileCache, 0700)
 	if err != nil {
 		log.Fatal(err)
 	}

@@ -292,7 +292,7 @@ func (sm *SlippyMap) makeTile(osmX, osmY, offsetX, offsetY int) {
 			log.Fatal(err)
 		}
 
-		// load the image from cache
+		// load the image
 		img, _, err := ebitenutil.NewImageFromFile(tilePath)
 		if err != nil {
 			log.Fatal(err)
