@@ -19,7 +19,7 @@ jobs:
     steps:
 
       - name: Install Go
-        uses: actions/setup-go@v2
+        uses: actions/setup-go@v3
 
       - uses: actions/checkout@v3
 
@@ -40,7 +40,7 @@ jobs:
     steps:
 
       - name: Install Go
-        uses: actions/setup-go@v2
+        uses: actions/setup-go@v3
 
       - name: Install chrome
         uses: browser-actions/setup-chrome@latest
@@ -67,7 +67,7 @@ jobs:
     steps:
 
       - name: Install Go
-        uses: actions/setup-go@v2
+        uses: actions/setup-go@v3
       
       - uses: actions/checkout@v3
 
@@ -91,7 +91,7 @@ jobs:
     steps:
 
       - name: Install Go
-        uses: actions/setup-go@v2
+        uses: actions/setup-go@v3
       
       - uses: actions/checkout@v3
 
@@ -110,7 +110,7 @@ jobs:
     steps:
 
       - name: Install Go
-        uses: actions/setup-go@v2
+        uses: actions/setup-go@v3
       
       - uses: actions/checkout@v3
 
@@ -127,7 +127,7 @@ jobs:
     steps:
 
       - name: Install Go
-        uses: actions/setup-go@v2
+        uses: actions/setup-go@v3
       
       - uses: actions/checkout@v3
 
