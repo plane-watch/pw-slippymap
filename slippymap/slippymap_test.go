@@ -3,6 +3,9 @@ package slippymap
 import (
 	"math"
 	"testing"
+
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 const (
@@ -15,59 +18,36 @@ func TestSlippyMap(t *testing.T) {
 
 	// get tile provider
 	tileProvider, err := TileProviderForOS()
-	if err != nil {
-		t.Error(err)
-	}
+	require.NoError(t, err, "TileProviderForOS returned error")
 
 	// test NewSlippyMap
 	smInitial, err := NewSlippyMap(1024, 1024, INIT_ZOOM_LEVEL, INIT_CENTRE_LAT, INIT_CENTRE_LONG, tileProvider)
-	if err != nil {
-		t.Error(err)
-	}
+	require.NoError(t, err, "NewSlippyMap returned error")
 
 	// test GetZoomLevel
 	zl := smInitial.GetZoomLevel()
-	if zl != INIT_ZOOM_LEVEL {
-		t.Errorf("GetZoomLevel returned %d, expected %d", zl, INIT_ZOOM_LEVEL)
-	}
+	assert.Equal(t, INIT_ZOOM_LEVEL, zl, "GetZoomLevel result not expected")
 
 	// test SetZoomLevel
 	_, err = smInitial.SetZoomLevel(INIT_ZOOM_LEVEL+1, INIT_CENTRE_LAT, INIT_CENTRE_LONG)
-	if err != nil {
-		t.Error(err)
-	}
+	require.NoError(t, err, "SetZoomLevel returned error")
 
 	// test SetZoomLevel error
 	_, err = smInitial.SetZoomLevel(ZOOM_LEVEL_MAX+1, INIT_CENTRE_LAT, INIT_CENTRE_LONG)
-	if err != nil {
-		// test passes
-	} else {
-		t.Error("Expected error, got none")
-	}
+	require.Error(t, err, "SetZoomLevel did not return an error when one was expected")
 
 	// test SetZoomLevel error
 	_, err = smInitial.SetZoomLevel(ZOOM_LEVEL_MIN-1, INIT_CENTRE_LAT, INIT_CENTRE_LONG)
-	if err != nil {
-		// test passes
-	} else {
-		t.Error("Expected error, got none")
-	}
+	require.Error(t, err, "SetZoomLevel did not return an error when one was expected")
 
 	// test ZoomIn
 	_, err = smInitial.ZoomIn(INIT_CENTRE_LAT, INIT_CENTRE_LONG)
-	if err != nil {
-		t.Error(err)
-	}
+	require.NoError(t, err, "ZoomIn returned error")
 
 	// test ZoomOut
 	_, err = smInitial.ZoomOut(INIT_CENTRE_LAT, INIT_CENTRE_LONG)
-	if err != nil {
-		t.Error(err)
-	}
-
+	require.NoError(t, err, "ZoomOut returned error")
 }
-
-// func NewSlippyMap(mapWidthPx, mapHeightPx, zoomLevel int, centreLat, centreLong float64, tileProvider TileProvider) (sm SlippyMap, err error) {
 
 func TestGpsCoordsToTileInfo(t *testing.T) {
 
@@ -105,29 +85,23 @@ func TestGpsCoordsToTileInfo(t *testing.T) {
 	}
 
 	for _, table := range tables {
+
+		// get the file for the test lat/long/zoom
 		x, y, oX, oY := gpsCoordsToTileInfo(table.lat, table.long, table.zoom)
 
-		// check x
-		if x != table.x {
-			t.Errorf("Lat/Long: %f, %f, zoom: %d expected tile X: %d, got: %d", table.lat, table.long, table.zoom, table.x, x)
-		}
+		// check tile X & Y
+		assert.Equal(t, table.x, x, "gpsCoordsToTileInfo returned unexpected X")
+		assert.Equal(t, table.y, y, "gpsCoordsToTileInfo returned unexpected Y")
 
-		// check y
-		if y != table.y {
-			t.Errorf("Lat/Long: %f, %f, zoom: %d expected tile Y: %d, got: %d", table.lat, table.long, table.zoom, table.y, y)
-		}
+		// round offsets to 2 decimal places & test
+		offsetX := math.Round(((table.offsetX * TILE_HEIGHT_PX) * 100) / 100)
+		offsetY := math.Round(((table.offsetY * TILE_WIDTH_PX) * 100) / 100)
+		oX = math.Round((oX * 100) / 100)
+		oY = math.Round((oY * 100) / 100)
 
-		// check offsetX (to 2 decimal places)
-		offsetX := table.offsetX * TILE_HEIGHT_PX
-		if math.Round(oX*100) != math.Round(offsetX*100) {
-			t.Errorf("Lat/Long: %f, %f, zoom: %d expected offsetX: %f, got: %f", table.lat, table.long, table.zoom, offsetX, oX)
-		}
-
-		// check offsetY (to 2 decimal places)
-		offsetY := table.offsetY * TILE_WIDTH_PX
-		if math.Round(oY*100) != math.Round(offsetY*100) {
-			t.Errorf("Lat/Long: %f, %f, zoom: %d expected offsetY: %f, got: %f", table.lat, table.long, table.zoom, offsetY, oY)
-		}
+		// check offsets
+		assert.Equal(t, offsetX, oX, "gpsCoordsToTileInfo returned unexpected X offset")
+		assert.Equal(t, offsetY, oY, "gpsCoordsToTileInfo returned unexpected Y offset")
 	}
 }
 
@@ -181,22 +155,17 @@ func TestTileXYZtoGpsCoords(t *testing.T) {
 	}
 
 	for _, table := range tables {
+
+		// get top-left lat/long of tile at x/y/zoom
 		lat, long := tileXYZtoGpsCoords(table.x, table.y, table.z)
 
 		// round to 7 decimal places
 		lat = math.Round(lat*10000000) / 10000000
 		long = math.Round(long*10000000) / 10000000
 
-		// check lat
-		if lat != table.topLeftLat {
-			t.Errorf("Tile x: %d, y: %d, zoom: %d expected lat: %f, got: %f", table.x, table.y, table.z, table.topLeftLat, lat)
-		}
-
-		// check long
-		if long != table.topLeftLong {
-			t.Errorf("Tile x: %d, y: %d, zoom: %d expected long: %f, got: %f", table.x, table.y, table.z, table.topLeftLong, long)
-		}
-
+		// check lat/long
+		assert.Equal(t, table.topLeftLat, lat, "tileXYZtoGpsCoords returned unexpected latitude")
+		assert.Equal(t, table.topLeftLong, long, "tileXYZtoGpsCoords returned unexpected longitude")
 	}
 
 }
