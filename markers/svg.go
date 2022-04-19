@@ -1,12 +1,5 @@
 package markers
 
-// Creates Ebiten vector.Path entries based on SVG paths
-//
-// Reference: https://developer.mozilla.org/en-US/docs/Web/SVG/Attribute/d
-//
-// NOTE: This module does not yet implement all SVG path commands!!
-//       It is a work in progress.
-
 import (
 	"errors"
 	"regexp"
@@ -490,6 +483,11 @@ func imgFromSVG(
 	// d: SVG path data (string) as-per: https://developer.mozilla.org/en-US/docs/Web/SVG/Attribute/d
 	// scale: SVG coordinates are multiplied by scale (float32)
 	// w,h: Width/height in pixels (int)
+	//
+	// Reference: https://developer.mozilla.org/en-US/docs/Web/SVG/Attribute/d
+	//
+	// NOTE: This does not yet implement all SVG path commands!!
+	//       It is a work in progress.
 
 	// define new svg object
 	svg := SVG{
