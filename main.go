@@ -2,7 +2,6 @@ package main
 
 import (
 	"fmt"
-	"image"
 	"image/color"
 	"log"
 	"pw_slippymap/markers"
@@ -35,18 +34,11 @@ var (
 	dbgMouseOverTileText string
 	dbgMouseLatLongText  string
 
-	// Appears to be needed for DrawTriangles to work...
-	emptyImage = ebiten.NewImage(1, 1)
+	// Map of markers
+	markerImages map[int]markers.Marker
 
-	// Sprites
-	VectorSprites map[string]VectorSprite
+	dbgMarkerRotateAngle float64
 )
-
-type VectorSprite struct {
-	vs         []ebiten.Vertex
-	is         []uint16
-	maxX, maxY int
-}
 
 type Game struct {
 	slippymap *slippymap.SlippyMap // hold the slippymap within the "game" object
@@ -123,6 +115,12 @@ func (g *Game) Update() error {
 		g.slippymap.Update(0, 0, false)
 	}
 
+	// TEMPORARY: rotate the planes during testing
+	dbgMarkerRotateAngle += 1
+	if dbgMarkerRotateAngle >= 360 {
+		dbgMarkerRotateAngle = 0
+	}
+
 	// no error to return
 	return nil
 }
@@ -185,25 +183,17 @@ func (g *Game) Draw(screen *ebiten.Image) {
 	ebitenutil.DebugPrintAt(screen, dbgNumTilesText, 0, 75)
 
 	// draw aircraft (TESTING)
-	vectorOpts := &ebiten.DrawTrianglesOptions{
-		FillRule: ebiten.EvenOdd,
-	}
-	drawOpts := &ebiten.DrawImageOptions{}
+	m := markerImages[markers.AIRBUS_A380]
+	do := m.MarkerDrawOpts(dbgMarkerRotateAngle, 200, 0)
+	screen.DrawImage(m.Img, &do)
 
-	drawOpts.GeoM.Translate(200, 0)
-	img := ebiten.NewImage(VectorSprites["Airbus A380"].maxX, VectorSprites["Airbus A380"].maxY)
-	img.DrawTriangles(VectorSprites["Airbus A380"].vs, VectorSprites["Airbus A380"].is, emptyImage.SubImage(image.Rect(0, 0, 1, 1)).(*ebiten.Image), vectorOpts)
-	screen.DrawImage(img, drawOpts)
+	m = markerImages[markers.FOKKER_F100]
+	do = m.MarkerDrawOpts(dbgMarkerRotateAngle, 257, 0)
+	screen.DrawImage(m.Img, &do)
 
-	drawOpts.GeoM.Translate(50, 0)
-	img = ebiten.NewImage(VectorSprites["Fokker F100"].maxX, VectorSprites["Fokker F100"].maxY)
-	img.DrawTriangles(VectorSprites["Fokker F100"].vs, VectorSprites["Fokker F100"].is, emptyImage.SubImage(image.Rect(0, 0, 1, 1)).(*ebiten.Image), vectorOpts)
-	screen.DrawImage(img, drawOpts)
-
-	drawOpts.GeoM.Translate(40, 0)
-	img = ebiten.NewImage(VectorSprites["Pilatus PC12"].maxX, VectorSprites["Pilatus PC12"].maxY)
-	img.DrawTriangles(VectorSprites["Pilatus PC12"].vs, VectorSprites["Pilatus PC12"].is, emptyImage.SubImage(image.Rect(0, 0, 1, 1)).(*ebiten.Image), vectorOpts)
-	screen.DrawImage(img, drawOpts)
+	m = markerImages[markers.PILATUS_PC12]
+	do = m.MarkerDrawOpts(dbgMarkerRotateAngle, 300, 0)
+	screen.DrawImage(m.Img, &do)
 
 }
 
@@ -231,55 +221,6 @@ func failFatally(err error) {
 	}
 }
 
-func loadVectorSprites() {
-
-	var (
-		err        error
-		vs         []ebiten.Vertex
-		is         []uint16
-		maxX, maxY int
-	)
-
-	// Airbus A380
-	log.Println("Loading sprite of Airbus A380")
-	vs, is, maxX, maxY, err = markers.InitMarker(markers.AIRBUS_A380_SVGPATH, markers.AIRBUS_A380_SCALE)
-	failFatally(err)
-	VectorSprites["Airbus A380"] = VectorSprite{
-		vs:   vs,
-		is:   is,
-		maxX: maxX,
-		maxY: maxY,
-	}
-
-	// Fokker F100
-	log.Println("Loading sprite of Fokker F100")
-	vs, is, maxX, maxY, err = markers.InitMarker(markers.FOKKER_F100_SVGPATH, markers.FOKKER_F100_SCALE)
-	failFatally(err)
-	VectorSprites["Fokker F100"] = VectorSprite{
-		vs:   vs,
-		is:   is,
-		maxX: maxX,
-		maxY: maxY,
-	}
-
-	// Pilatus PC12
-	log.Println("Loading sprite of Pilatus PC12")
-	vs, is, maxX, maxY, err = markers.InitMarker(markers.PILATUS_PC12_SVGPATH, markers.PILATUS_PC12_SCALE)
-	failFatally(err)
-	VectorSprites["Pilatus PC12"] = VectorSprite{
-		vs:   vs,
-		is:   is,
-		maxX: maxX,
-		maxY: maxY,
-	}
-
-}
-
-func init() {
-	VectorSprites = make(map[string]VectorSprite)
-	emptyImage.Fill(color.White)
-}
-
 func main() {
 	log.Print("Started")
 
@@ -294,8 +235,11 @@ func main() {
 	ebiten.SetWindowSize(windowWidth, windowHeight)
 	ebiten.SetWindowTitle("plane.watch")
 
-	// load sprites
-	loadVectorSprites()
+	// // load sprites
+	// loadVectorSprites()
+	var err error
+	markerImages, err = markers.InitMarkers()
+	failFatally(err)
 
 	tileProvider, err := slippymap.TileProviderForOS()
 	if err != nil {

@@ -9,12 +9,11 @@ package markers
 
 import (
 	"errors"
-	"log"
-	"math"
 	"regexp"
 	"strconv"
 
-	"github.com/hajimehoshi/ebiten/v2/vector"
+	"github.com/fogleman/gg"
+	"github.com/hajimehoshi/ebiten/v2"
 )
 
 const (
@@ -64,15 +63,16 @@ var (
 
 // SVG struct to assist with building the vector.Path
 type SVG struct {
-	x, y               float32      // the current x/y coordinates of the "pen"
-	startx, starty     float32      // the initial x/y coordinates of the "pen"
-	maxx, maxy         float32      // maximum x & y
-	currentPathCommand int          // the current SVG command
-	path               *vector.Path // the pointer to the ebiten vector.Path object
-	scale              float32      // the scale factor. Points from SVG are multiplied by this figure
+	x, y               float64 // the current x/y coordinates of the "pen"
+	startx, starty     float64 // the initial x/y coordinates of the "pen"
+	offsetX, offsetY   float64
+	maxx, maxy         float64     // maximum x & y
+	currentPathCommand int         // the current SVG command
+	scale              float64     // the scale factor. Points from SVG are multiplied by this figure
+	dc                 *gg.Context // the drawing context
 }
 
-func (svg *SVG) updateMaxXY(x, y float32) {
+func (svg *SVG) updateMaxXY(x, y float64) {
 	if x > svg.maxx {
 		svg.maxx = x
 	}
@@ -111,12 +111,15 @@ func (svg *SVG) moveTo(d string, dx bool) (remaining_d string, err error) {
 		// fmt.Println("MoveToDx:", x, y)
 		x = svg.x + x
 		y = svg.y + y
+	} else {
+		x = x + svg.offsetX
+		y = y + svg.offsetY
 	}
 
 	// fmt.Println("MoveTo:", x, y)
 
 	// perform the path.MoveTo
-	svg.path.MoveTo(x, y)
+	svg.dc.MoveTo(x, y)
 
 	// update the current pen position
 	svg.x = x
@@ -136,7 +139,7 @@ func (svg *SVG) closePath() {
 	svg.x = svg.startx
 	svg.y = svg.starty
 	// fmt.Println("ClosePath")
-	svg.path.LineTo(svg.startx, svg.starty)
+	svg.dc.LineTo(svg.startx, svg.starty)
 }
 
 func (svg *SVG) lineTo(d string, dx bool) (remaining_d string, err error) {
@@ -167,12 +170,15 @@ func (svg *SVG) lineTo(d string, dx bool) (remaining_d string, err error) {
 	if dx {
 		x = svg.x + x
 		y = svg.y + y
+	} else {
+		x = x + svg.offsetX
+		y = y + svg.offsetY
 	}
 
 	// fmt.Println("LineTo:", x, y)
 
 	// perform the path.LineTo
-	svg.path.LineTo(x, y)
+	svg.dc.LineTo(x, y)
 
 	// update the current pen position
 	svg.x = x
@@ -202,12 +208,14 @@ func (svg *SVG) vertLineTo(d string, dx bool) (remaining_d string, err error) {
 	// if LineToDx
 	if dx {
 		y = svg.y + y
+	} else {
+		y = y + svg.offsetY
 	}
 
 	// fmt.Println("VertLineTo:", svg.x, y)
 
 	// perform the path command
-	svg.path.LineTo(svg.x, y)
+	svg.dc.LineTo(svg.x, y)
 
 	// update the current pen position
 	svg.y = y
@@ -236,12 +244,14 @@ func (svg *SVG) horizLineTo(d string, dx bool) (remaining_d string, err error) {
 	// if LineToDx
 	if dx {
 		x = svg.x + x
+	} else {
+		x = x + svg.offsetX
 	}
 
 	// fmt.Println("HorizLineTo:", x, svg.y)
 
 	// perform the path command
-	svg.path.LineTo(x, svg.y)
+	svg.dc.LineTo(x, svg.y)
 
 	// update the current pen position
 	svg.x = x
@@ -325,12 +335,19 @@ func (svg *SVG) cubicTo(d string, dx bool) (remaining_d string, err error) {
 		y2 = svg.y + y2
 		x = svg.x + x
 		y = svg.y + y
+	} else {
+		x1 = x1 + svg.offsetX
+		y1 = y1 + svg.offsetY
+		x2 = x2 + svg.offsetX
+		y2 = y2 + svg.offsetY
+		x = x + svg.offsetX
+		y = y + svg.offsetY
 	}
 
 	// fmt.Println("CubicTo:", x1, y1, x2, y2, x, y)
 
 	// perform the path.CubicTo
-	svg.path.CubicTo(x1, y1, x2, y2, x, y)
+	svg.dc.CubicTo(x1, y1, x2, y2, x, y)
 
 	// update the current pen position
 	svg.x = x
@@ -439,7 +456,7 @@ func consumeCommand(d string) (commandFound bool, commandStr string, remaining_d
 	return false, "", d, nil
 }
 
-func consumeNumber(d string) (numberFound bool, number float32, remaining_d string, err error) {
+func consumeNumber(d string) (numberFound bool, number float64, remaining_d string, err error) {
 	// attempt to consume a number from the path given by d
 	svgNum := reSVGNumber.FindString(d)
 	if len(svgNum) > 0 {
@@ -451,7 +468,7 @@ func consumeNumber(d string) (numberFound bool, number float32, remaining_d stri
 			} else {
 				// fmt.Println(svgNumOnly)
 				remaining_d = d[len(svgNum):]
-				return true, float32(number), remaining_d, nil
+				return true, number, remaining_d, nil
 			}
 		}
 		return false, 0, d, nil
@@ -459,17 +476,36 @@ func consumeNumber(d string) (numberFound bool, number float32, remaining_d stri
 	return false, 0, d, nil
 }
 
-func PathFromSVG(path *vector.Path, scale float32, d string) (maxx, maxxy int, err error) {
-	// Takes SVG path data as string d. Appends to the vector.Path object given by path.
-	// SVG coordinates are multiplied by scale
+// TODO: this is way too many args - maybe send a struct
+func imgFromSVG(
+	w, h int,
+	scale float64,
+	d string,
+	pathStroked, pathFilled, bgFilled bool,
+	strokeWidth float64,
+	strokeColour, fillColour, bgColour RGBA,
+	offsetX, offsetY float64,
+) (img *ebiten.Image, err error) {
+	// Returns a drawing context from SVG path data
+	// d: SVG path data (string) as-per: https://developer.mozilla.org/en-US/docs/Web/SVG/Attribute/d
+	// scale: SVG coordinates are multiplied by scale (float32)
+	// w,h: Width/height in pixels (int)
 
 	// define new svg object
 	svg := SVG{
-		x:                  0,
-		y:                  0,
+		x:                  offsetX,
+		y:                  offsetY,
+		offsetX:            offsetX,
+		offsetY:            offsetY,
 		currentPathCommand: SVG_PATH_CMD_None,
-		path:               path,
 		scale:              scale,
+		dc:                 gg.NewContext(w, h),
+	}
+
+	// fill the background if required
+	if bgFilled {
+		svg.dc.SetRGBA(bgColour.r, bgColour.g, bgColour.b, bgColour.a)
+		svg.dc.Clear()
 	}
 
 	for len(d) > 0 {
@@ -484,7 +520,7 @@ func PathFromSVG(path *vector.Path, scale float32, d string) (maxx, maxxy int, e
 		var err error
 		commandFound, commandStr, d, err = consumeCommand(d)
 		if err != nil {
-			log.Fatal(err)
+			return ebiten.NewImage(w, h), err
 		}
 		if commandFound {
 			// fmt.Println(commandStr)
@@ -528,7 +564,7 @@ func PathFromSVG(path *vector.Path, scale float32, d string) (maxx, maxxy int, e
 			case "Z", "z":
 				svg.currentPathCommand = SVG_PATH_CMD_ClosePath
 			default:
-				return int(math.Ceil(float64(svg.maxx))), int(math.Ceil(float64(svg.maxy))), errors.New("Unknown SVG command")
+				return ebiten.NewImage(w, h), errors.New("Unknown SVG command")
 			}
 		}
 
@@ -560,13 +596,27 @@ func PathFromSVG(path *vector.Path, scale float32, d string) (maxx, maxxy int, e
 			svg.closePath()
 		default:
 			// fmt.Println(svg.currentPathCommand)
-			return int(math.Ceil(float64(svg.maxx))), int(math.Ceil(float64(svg.maxy))), errors.New("SVG error")
+			return ebiten.NewImage(w, h), errors.New("SVG error")
 		}
 		if err != nil {
-			log.Fatal(err)
+			return ebiten.NewImage(w, h), err
 		}
-
-		// fmt.Println("")
 	}
-	return int(math.Ceil(float64(svg.maxx))), int(math.Ceil(float64(svg.maxy))), nil
+
+	// stroke the current path with this colour & width
+	if pathStroked {
+		svg.dc.SetRGBA(strokeColour.r, strokeColour.g, strokeColour.b, strokeColour.a)
+		svg.dc.SetLineWidth(strokeWidth)
+		svg.dc.StrokePreserve()
+	}
+
+	// fill the path
+	if pathFilled {
+		svg.dc.SetRGBA(fillColour.r, fillColour.g, fillColour.b, fillColour.a)
+		svg.dc.Fill()
+	}
+
+	// fmt.Println(math.Ceil(svg.maxx+offsetX), math.Ceil(svg.maxy+offsetY))
+
+	return ebiten.NewImageFromImage(svg.dc.Image()), nil
 }

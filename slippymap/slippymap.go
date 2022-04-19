@@ -475,12 +475,12 @@ func secant(x float64) (s float64) {
 	return 1 / math.Cos(x)
 }
 
-func degreesToRadians(d float64) (r float64) {
+func DegreesToRadians(d float64) (r float64) {
 	// convert degrees to radians
 	return d * (math.Pi / 180.0)
 }
 
-func radiansToDegrees(r float64) (d float64) {
+func RadiansToDegrees(r float64) (d float64) {
 	// convert radians to degrees
 	return r * 180 / math.Pi
 }
@@ -490,7 +490,7 @@ func gpsCoordsToTileInfo(lat_deg, long_deg float64, zoomLevel int) (tileX, tileY
 
 	// perform calculation as-per: https://wiki.openstreetmap.org/wiki/Slippy_map_tilenames#Lon..2Flat._to_tile_numbers
 	n := float64(calcN(zoomLevel))
-	lat_rad := degreesToRadians(lat_deg)
+	lat_rad := DegreesToRadians(lat_deg)
 	x := n * ((long_deg + 180.0) / 360.0)
 	y := n * (1 - (math.Log(math.Tan(lat_rad)+secant(lat_rad)) / math.Pi)) / 2.0
 
@@ -506,7 +506,7 @@ func gpsCoordsToTileInfo(lat_deg, long_deg float64, zoomLevel int) (tileX, tileY
 func tileXYZtoGpsCoords(x, y, z int) (topLeftLat, topLeftLong float64) {
 	// return the top left lat/long of a tile
 	n := float64(calcN(z))
-	topLeftLat = radiansToDegrees(math.Atan(math.Sinh(math.Pi * (1 - 2*float64(y)/n))))
+	topLeftLat = RadiansToDegrees(math.Atan(math.Sinh(math.Pi * (1 - 2*float64(y)/n))))
 	topLeftLong = float64(x)/n*360.0 - 180.0
 	return topLeftLat, topLeftLong
 }
