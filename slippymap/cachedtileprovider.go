@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"log"
 	"net/http"
 	"os"
 	"path"
@@ -59,6 +60,7 @@ func (ctp *CachedTileProvider) GetTileAddress(x, y, z int) (tilePath string, err
 		// log.Print("Downloading tile to cache:", url, "to", tilePath)
 
 		// prepare the request
+		log.Printf("Downloading tile: %s", url)
 		req, err := http.NewRequest("GET", url, nil)
 		if err != nil {
 			return "", err
