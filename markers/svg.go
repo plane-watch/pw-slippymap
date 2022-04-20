@@ -66,6 +66,17 @@ type SVG struct {
 	dc                 *gg.Context // the drawing context
 }
 
+type renderSVG struct {
+	scale                              float64 // the scale factor. Points from SVG are multiplied by this figure
+	d                                  string  // the SVG path (see: https://developer.mozilla.org/en-US/docs/Web/SVG/Attribute/d)
+	pathStroked                        bool    // is the path stroked (giggity)
+	pathFilled                         bool    // is the path filled (giggity)
+	bgFilled                           bool    // is the background filled (giggity)
+	strokeWidth                        float64 // the width (in pixels) of the stroke (giggity)
+	strokeColour, fillColour, bgColour RGBA    // the stroke (giggity), fill and background colours
+	offsetX, offsetY                   float64 // the offset X/Y (to ensure the rendered SVG appears inside the image)
+}
+
 func (svg *SVG) updateMaxXY(x, y float64) {
 	if x > svg.maxx {
 		svg.maxx = x
@@ -389,15 +400,7 @@ func consumeNumber(d string) (numberFound bool, number float64, remaining_d stri
 	return false, 0, d, nil
 }
 
-// TODO: this is way too many args - maybe send a struct
-func imgFromSVG(
-	scale float64,
-	d string,
-	pathStroked, pathFilled, bgFilled bool,
-	strokeWidth float64,
-	strokeColour, fillColour, bgColour RGBA,
-	offsetX, offsetY float64,
-) (img *ebiten.Image, err error) {
+func imgFromSVG(r renderSVG) (img *ebiten.Image, err error) {
 	// Returns a drawing context from SVG path data
 	// d: SVG path data (string) as-per: https://developer.mozilla.org/en-US/docs/Web/SVG/Attribute/d
 	// scale: SVG coordinates are multiplied by scale (float32)
@@ -410,24 +413,24 @@ func imgFromSVG(
 
 	// define new svg object
 	svg := SVG{
-		x:                  offsetX,
-		y:                  offsetY,
-		startx:             offsetX,
-		starty:             offsetY,
-		offsetX:            offsetX,
-		offsetY:            offsetY,
+		x:                  r.offsetX,
+		y:                  r.offsetY,
+		startx:             r.offsetX,
+		starty:             r.offsetY,
+		offsetX:            r.offsetX,
+		offsetY:            r.offsetY,
 		currentPathCommand: SVG_PATH_CMD_None,
-		scale:              scale,
+		scale:              r.scale,
 		dc:                 gg.NewContext(500, 500),
 	}
 
 	// fill the background if required
-	if bgFilled {
-		svg.dc.SetRGBA(bgColour.r, bgColour.g, bgColour.b, bgColour.a)
+	if r.bgFilled {
+		svg.dc.SetRGBA(r.bgColour.r, r.bgColour.g, r.bgColour.b, r.bgColour.a)
 		svg.dc.Clear()
 	}
 
-	for len(d) > 0 {
+	for len(r.d) > 0 {
 
 		// fmt.Println("---")
 		// fmt.Println(d)
@@ -437,7 +440,7 @@ func imgFromSVG(
 		var commandFound bool
 		var commandStr string
 		var err error
-		commandFound, commandStr, d, err = consumeCommand(d)
+		commandFound, commandStr, r.d, err = consumeCommand(r.d)
 		if err != nil {
 			return ebiten.NewImage(1, 1), err
 		}
@@ -490,27 +493,27 @@ func imgFromSVG(
 		switch svg.currentPathCommand {
 
 		case SVG_PATH_CMD_MoveTo:
-			d, err = svg.moveTo(d, false)
+			r.d, err = svg.moveTo(r.d, false)
 		case SVG_PATH_CMD_MoveToDx:
-			d, err = svg.moveTo(d, true)
+			r.d, err = svg.moveTo(r.d, true)
 
 		case SVG_PATH_CMD_CubicTo:
-			d, err = svg.cubicTo(d, false)
+			r.d, err = svg.cubicTo(r.d, false)
 		case SVG_PATH_CMD_CubicToDx:
-			d, err = svg.cubicTo(d, true)
+			r.d, err = svg.cubicTo(r.d, true)
 
 		case SVG_PATH_CMD_LineTo:
-			d, err = svg.lineTo(d, false)
+			r.d, err = svg.lineTo(r.d, false)
 		case SVG_PATH_CMD_LineToDx:
-			d, err = svg.lineTo(d, true)
+			r.d, err = svg.lineTo(r.d, true)
 		case SVG_PATH_CMD_HorizLineTo:
-			d, err = svg.horizLineTo(d, false)
+			r.d, err = svg.horizLineTo(r.d, false)
 		case SVG_PATH_CMD_HorizLineToDx:
-			d, err = svg.horizLineTo(d, true)
+			r.d, err = svg.horizLineTo(r.d, true)
 		case SVG_PATH_CMD_VertLineTo:
-			d, err = svg.vertLineTo(d, false)
+			r.d, err = svg.vertLineTo(r.d, false)
 		case SVG_PATH_CMD_VertLineToDx:
-			d, err = svg.vertLineTo(d, true)
+			r.d, err = svg.vertLineTo(r.d, true)
 		case SVG_PATH_CMD_ClosePath:
 			svg.closePath()
 		default:
@@ -523,15 +526,15 @@ func imgFromSVG(
 	}
 
 	// stroke the current path with this colour & width
-	if pathStroked {
-		svg.dc.SetRGBA(strokeColour.r, strokeColour.g, strokeColour.b, strokeColour.a)
-		svg.dc.SetLineWidth(strokeWidth)
+	if r.pathStroked {
+		svg.dc.SetRGBA(r.strokeColour.r, r.strokeColour.g, r.strokeColour.b, r.strokeColour.a)
+		svg.dc.SetLineWidth(r.strokeWidth)
 		svg.dc.StrokePreserve()
 	}
 
 	// fill the path
-	if pathFilled {
-		svg.dc.SetRGBA(fillColour.r, fillColour.g, fillColour.b, fillColour.a)
+	if r.pathFilled {
+		svg.dc.SetRGBA(r.fillColour.r, r.fillColour.g, r.fillColour.b, r.fillColour.a)
 		svg.dc.Fill()
 	}
 
