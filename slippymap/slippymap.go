@@ -384,7 +384,7 @@ func (sm *SlippyMap) GetTileAtPixel(x, y int) (osmX, osmY, zoomLevel int, err er
 	return 0, 0, 0, errors.New("Tile not found")
 }
 
-func (sm *SlippyMap) GetLatLongAtPixel(x, y int) (lat_deg, long_deg float64, err error) {
+func (sm *SlippyMap) GetLatLongAtPixel(x, y int) (latDeg, longDeg float64, err error) {
 	// returns the lat/long at pixel x,y
 
 	// first get tile
@@ -410,27 +410,18 @@ func (sm *SlippyMap) GetLatLongAtPixel(x, y int) (lat_deg, long_deg float64, err
 		return 0, 0, errors.New("Tile not found")
 	}
 
-	// get lat/long at top left corner of tile
-	topLeftLat, topLeftLong := tileXYZtoGpsCoords(osmX, osmY, zoomLevel)
-
-	// get lat/long of tile to the right
-	_, topLeftLongRight := tileXYZtoGpsCoords(osmX+1, osmY, zoomLevel)
-
-	// get lat/long of tile below
-	topLeftLatBelow, _ := tileXYZtoGpsCoords(osmX, osmY+1, zoomLevel)
-
-	// get lat/long degrees per pixel
-	latPerPixel := (topLeftLatBelow - topLeftLat) / (TILE_HEIGHT_PX + 1)
-	longPerPixel := (topLeftLongRight - topLeftLong) / (TILE_WIDTH_PX + 1)
-
 	// get pixel offset within tile
 	offsetX := x - topLeftX
 	offsetY := y - topLeftY
 
-	lat_deg = topLeftLat + (float64(offsetY) * latPerPixel)
-	long_deg = topLeftLong + (float64(offsetX) * longPerPixel)
+	mercatorX := float64((osmX*TILE_WIDTH_PX)+offsetX) / TILE_WIDTH_PX
+	mercatorY := float64((osmY*TILE_HEIGHT_PX)+offsetY) / TILE_HEIGHT_PX
 
-	return lat_deg, long_deg, nil
+	latDeg = math.Atan(math.Sinh(math.Pi-(mercatorY/math.Pow(2, float64(sm.zoomLevel))*2*math.Pi))) * (180 / math.Pi)
+
+	longDeg = (mercatorX / math.Pow(2, float64(sm.zoomLevel)) * 360) - 180
+
+	return latDeg, longDeg, nil
 
 }
 
