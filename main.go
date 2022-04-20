@@ -270,6 +270,13 @@ func main() {
 		slippymap: &sm,
 	}
 
+	// In FPSModeVsyncOffMinimum, the game's Update and Draw are called only when
+	// 1) new inputting is detected, or 2) ScheduleFrame is called.
+	// In FPSModeVsyncOffMinimum, TPS is SyncWithFPS no matter what TPS is specified at SetMaxTPS.
+	// ebiten.ScheduleFrame is called within SlippyMap.Update()
+	// Should we make .Update() return a boolean that determines whether we schedule a frame in this packages Draw() function?
+	ebiten.SetFPSMode(ebiten.FPSModeVsyncOffMinimum)
+
 	// run
 	defer endProgram()
 	log.Println("Starting UI")

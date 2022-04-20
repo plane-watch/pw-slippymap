@@ -117,7 +117,22 @@ func InitMarkers() (imgs map[string]Marker, err error) {
 		go func(k string, v aircraftMarker) {
 			defer wg.Done()
 			log.Printf("Pre-rendering sprites: %s (ICAO: %s)", v.model, k)
-			img, err := imgFromSVG(v.scale, v.svgPath, true, true, false, 2, strokeColour, fillColour, bgColour, 1, 1)
+
+			r := renderSVG{
+				scale:        v.scale,
+				d:            v.svgPath,
+				pathStroked:  true,
+				pathFilled:   true,
+				bgFilled:     false,
+				strokeWidth:  2,
+				strokeColour: strokeColour,
+				fillColour:   fillColour,
+				bgColour:     bgColour,
+				offsetX:      1,
+				offsetY:      1,
+			}
+
+			img, err := imgFromSVG(r)
 			if err != nil {
 				log.Fatal(err)
 			}
