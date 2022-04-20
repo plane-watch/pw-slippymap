@@ -270,6 +270,11 @@ func main() {
 		slippymap: &sm,
 	}
 
+	// In FPSModeVsyncOffMinimum, the game's Update and Draw are called only when
+	// 1) new inputting is detected, or 2) ScheduleFrame is called.
+	// In FPSModeVsyncOffMinimum, TPS is SyncWithFPS no matter what TPS is specified at SetMaxTPS.
+	ebiten.SetFPSMode(ebiten.FPSModeVsyncOffMinimum)
+
 	// run
 	defer endProgram()
 	log.Println("Starting UI")

@@ -88,6 +88,7 @@ func (sm *SlippyMap) Draw(screen *ebiten.Image) {
 			dbgText := fmt.Sprintf("%d/%d/%d", (*t).osmX, (*t).osmY, (*t).zoomLevel)
 			ebitenutil.DebugPrintAt(sm.img, dbgText, (*t).offsetX, (*t).offsetY)
 		}
+		ebiten.ScheduleFrame()
 	}
 
 	// draw sm.img to the game screen
