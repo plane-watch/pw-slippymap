@@ -57,8 +57,6 @@ func (ctp *CachedTileProvider) GetTileAddress(x, y, z int) (tilePath string, err
 			return "", err
 		}
 
-		// log.Print("Downloading tile to cache:", url, "to", tilePath)
-
 		// prepare the request
 		log.Printf("Downloading tile: %s", url)
 		req, err := http.NewRequest("GET", url, nil)

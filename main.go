@@ -69,38 +69,13 @@ func (g *Game) Update() error {
 
 	// zoom: handle wheel
 	_, dy := ebiten.Wheel()
-
-	// zoom: honour the cooldown (helps when doing the two-finger-scroll on a macbook touchpad) & trigger on mousewheel y-axis
-	if zoomCoolDown == 0 && dy != 0 {
-
-		// zoom: get mouse cursor lat/long
-		ctLat, ctLong, err := g.slippymap.GetLatLongAtPixel(userMouse.currX, userMouse.currY)
-		if err != nil {
-			// if error getting mouse cursor lat/long, log.
-			log.Print("Cannot zoom")
-		} else {
-			// if no error getting mouse cursor lat/long, then do the zoom operation
-			var newsm slippymap.SlippyMap
-			var err error
-			if dy > 0 {
-				newsm, err = g.slippymap.ZoomIn(ctLat, ctLong)
-				zoomCoolDown = ZOOM_COOLDOWN_TICKS
-			} else if dy < 0 {
-				newsm, err = g.slippymap.ZoomOut(ctLat, ctLong)
-				zoomCoolDown = ZOOM_COOLDOWN_TICKS
-			}
-			if err != nil {
-				log.Print("Error zooming")
-			} else {
-				g.slippymap = &newsm
-			}
-		}
-	} else {
-		// zoom: decrement zoom cool down counter to zero
-		zoomCoolDown -= 1
-		if zoomCoolDown < 0 {
-			zoomCoolDown = 0
-		}
+	if dy != 0 {
+		newsm, _ := g.slippymap.Scale(dy)
+		g.slippymap = &newsm
+	}
+	zoomed, newsm, _ := g.slippymap.FindBestZoomLevel()
+	if zoomed {
+		g.slippymap = &newsm
 	}
 
 	// update the mouse cursor position
@@ -275,7 +250,7 @@ func main() {
 	// In FPSModeVsyncOffMinimum, TPS is SyncWithFPS no matter what TPS is specified at SetMaxTPS.
 	// ebiten.ScheduleFrame is called within SlippyMap.Update()
 	// Should we make .Update() return a boolean that determines whether we schedule a frame in this packages Draw() function?
-	ebiten.SetFPSMode(ebiten.FPSModeVsyncOffMinimum)
+	// ebiten.SetFPSMode(ebiten.FPSModeVsyncOffMinimum)
 
 	// run
 	defer endProgram()

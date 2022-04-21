@@ -55,13 +55,13 @@ func TestSlippyMap(t *testing.T) {
 		lat_deg, long_deg, err := smInitial.GetLatLongAtPixel(SLIPPYMAP_WIDTH/2, SLIPPYMAP_HEIGHT/2)
 		require.NoError(t, err, "GetLatLongAtPixel returned error")
 
-		// round to 3 decimal places (to account for zoom level error)
-		lat_deg = math.Round(lat_deg*1000) / 1000
-		long_deg = math.Round(long_deg*1000) / 1000
+		// round to 4 decimal places (to account for zoom level error)
+		lat_deg = math.Round(lat_deg*10000) / 10000
+		long_deg = math.Round(long_deg*10000) / 10000
 
 		// check results
-		assert.Equal(t, math.Round(INIT_CENTRE_LAT*1000)/1000, lat_deg, "GetLatLongAtPixel returned unexpected latitude")
-		assert.Equal(t, math.Round(INIT_CENTRE_LONG*1000)/1000, long_deg, "GetLatLongAtPixel returned unexpected longitude")
+		assert.Equal(t, math.Round(INIT_CENTRE_LAT*10000)/10000, lat_deg, "GetLatLongAtPixel returned unexpected latitude")
+		assert.Equal(t, math.Round(INIT_CENTRE_LONG*10000)/10000, long_deg, "GetLatLongAtPixel returned unexpected longitude")
 	})
 
 	// test LatLongToPixel
@@ -106,13 +106,13 @@ func TestSlippyMap(t *testing.T) {
 
 	// test ZoomIn
 	t.Run("Test ZoomIn", func(t *testing.T) {
-		_, err = smInitial.ZoomIn(INIT_CENTRE_LAT, INIT_CENTRE_LONG)
+		_, err = smInitial.ZoomIn()
 		require.NoError(t, err, "ZoomIn returned error")
 	})
 
 	// test ZoomOut
 	t.Run("Test ZoomOut", func(t *testing.T) {
-		_, err = smInitial.ZoomOut(INIT_CENTRE_LAT, INIT_CENTRE_LONG)
+		_, err = smInitial.ZoomOut()
 		require.NoError(t, err, "ZoomOut returned error")
 	})
 
