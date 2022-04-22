@@ -38,6 +38,8 @@ var (
 	markerImages map[string]markers.Marker
 
 	dbgMarkerRotateAngle float64
+
+	tileProvider slippymap.TileProvider
 )
 
 type Game struct {
@@ -109,10 +111,10 @@ func (g *Game) Update() error {
 	// handle dragging
 	if ebiten.IsMouseButtonPressed(ebiten.MouseButtonLeft) {
 		// update the map with the new offset
-		g.slippymap.Update(userMouse.offsetX, userMouse.offsetY, false)
+		g.slippymap.Update(userMouse.offsetX, userMouse.offsetY)
 	} else {
 		// otherwise update with no offset
-		g.slippymap.Update(0, 0, false)
+		g.slippymap.Update(0, 0)
 	}
 
 	// TEMPORARY/TESTING: rotate the plane sprites for testing
@@ -212,10 +214,23 @@ func (g *Game) Draw(screen *ebiten.Image) {
 func (g *Game) Layout(outsideWidth, outsideHeight int) (screenWidth, screenHeight int) {
 
 	// set slippymap size if window size changed
-	smW, smH := g.slippymap.GetSize()
-	if outsideWidth != smW || outsideHeight != smH {
-		g.slippymap.SetSize(outsideWidth, outsideHeight)
-	}
+	// smW, smH := g.slippymap.GetSize()
+	// if outsideWidth != smW || outsideHeight != smH && !ebiten.IsMouseButtonPressed(ebiten.MouseButtonLeft) {
+	// 	// g.slippymap.SetSize(outsideWidth, outsideHeight)
+
+	// 	w, h := g.slippymap.GetSize()
+
+	// 	lat, long, err := g.slippymap.GetLatLongAtPixel(w/2, h/2)
+	// 	failFatally(err)
+
+	// 	newsm, err := slippymap.NewSlippyMap(outsideWidth, outsideHeight, g.slippymap.GetZoomLevel(), lat, long, tileProvider)
+	// 	failFatally(err)
+
+	// 	g.slippymap = &newsm
+
+	// 	time.Sleep(time.Millisecond * 1000)
+
+	// }
 
 	// WindowSize returns 0,0 in non-desktop environments (eg wasm). Only rely on it if
 	// the values aren't 0,0
@@ -254,7 +269,7 @@ func main() {
 	ebiten.SetWindowSize(windowWidth, windowHeight)
 	ebiten.SetWindowTitle("plane.watch")
 
-	tileProvider, err := slippymap.TileProviderForOS()
+	tileProvider, err = slippymap.TileProviderForOS()
 	if err != nil {
 		log.Fatal("could not initilalise tile provider because: ", err.Error())
 	}
