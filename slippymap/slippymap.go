@@ -338,6 +338,8 @@ func (sm *SlippyMap) makeTile(osmX, osmY, offsetX, offsetY int) {
 
 	// Add tile to slippymap
 	sm.tiles = append(sm.tiles, &t)
+
+	ebiten.ScheduleFrame()
 }
 
 func (sm *SlippyMap) SetSize(mapWidthPx, mapHeightPx int) {
