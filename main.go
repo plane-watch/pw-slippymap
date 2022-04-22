@@ -270,10 +270,7 @@ func main() {
 	}
 
 	// initialise map: initialise the new slippymap
-	sm, err := slippymap.NewSlippyMap(windowWidth, windowHeight, INIT_ZOOM_LEVEL, INIT_CENTRE_LAT, INIT_CENTRE_LONG, tileProvider)
-	if err != nil {
-		log.Fatal(err)
-	}
+	sm := slippymap.NewSlippyMap(windowWidth, windowHeight, INIT_ZOOM_LEVEL, INIT_CENTRE_LAT, INIT_CENTRE_LONG, tileProvider)
 
 	// prepare "game"
 	g := &Game{

@@ -466,10 +466,7 @@ func (sm *SlippyMap) SetZoomLevel(zoomLevel int, lat_deg, long_deg float64) (new
 	}
 
 	// create a new slippymap centred on the requested lat/long, at the requested zoom level
-	newsm, err = NewSlippyMap(sm.mapWidthPx, sm.mapHeightPx, zoomLevel, lat_deg, long_deg, sm.tileProvider)
-	if err != nil {
-		return SlippyMap{}, err
-	}
+	newsm = NewSlippyMap(sm.mapWidthPx, sm.mapHeightPx, zoomLevel, lat_deg, long_deg, sm.tileProvider)
 
 	// copy the current map image into the zoom previous level background image
 	sm.Draw(newsm.zoomPrevLevelImg)
@@ -478,7 +475,7 @@ func (sm *SlippyMap) SetZoomLevel(zoomLevel int, lat_deg, long_deg float64) (new
 	return newsm, nil
 }
 
-func NewSlippyMap(mapWidthPx, mapHeightPx, zoomLevel int, centreLat, centreLong float64, tileProvider TileProvider) (sm SlippyMap, err error) {
+func NewSlippyMap(mapWidthPx, mapHeightPx, zoomLevel int, centreLat, centreLong float64, tileProvider TileProvider) (sm SlippyMap) {
 
 	log.Printf("Initialising SlippyMap at %0.4f/%0.4f, zoom level %d", centreLat, centreLong, zoomLevel)
 
@@ -506,7 +503,7 @@ func NewSlippyMap(mapWidthPx, mapHeightPx, zoomLevel int, centreLat, centreLong 
 	sm.Update(true)
 
 	// return the slippymap
-	return sm, nil
+	return sm
 }
 
 func calcN(zoom_lvl int) (n int) {
