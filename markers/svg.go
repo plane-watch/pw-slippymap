@@ -49,10 +49,10 @@ const (
 
 var (
 	// precompile regex patterns
-	reSVGCommand = regexp.MustCompile(`^\s*,?[MmLlHhVvCcSsQqTtAaZz]{1}`) // consumes a command
-	reSVGNumber  = regexp.MustCompile(`^\s*,?-?[0-9]*\.?[0-9]*`)         // consumes a number
-	reCommand    = regexp.MustCompile(`[MmLlHhVvCcSsQqTtAaZz]{1}`)       // return just the command component
-	reFloat      = regexp.MustCompile(`[\-0-9\.]+`)                      // return just the number component
+	reSVGCommand = regexp.MustCompile(`^\s*,?[MmLlHhVvCcSsQqTtAaZz]{1}`)                    // consumes a command
+	reSVGNumber  = regexp.MustCompile(`^[\s,]*(-?[0-9]+\.?[0-9]*\b)|(-?[0-9][eE]-?[0-9]*)`) // consumes a float or scientific notated float
+	reCommand    = regexp.MustCompile(`[MmLlHhVvCcSsQqTtAaZz]{1}`)                          // return just the command component
+	reFloat      = regexp.MustCompile(`([\-0-9\.!e!E]+)|(-?[0-9]+[eE]-?[0-9]+)`)            // return just the number component
 )
 
 // SVG struct to assist with building the vector.Path
@@ -364,15 +364,15 @@ func (svg *SVG) cubicTo(d string, dx bool) (remaining_d string, err error) {
 	return d, nil
 }
 
-func consumeCommand(d string) (commandFound bool, commandStr string, remaining_d string, err error) {
+func consumeCommand(d string) (commandFound bool, command string, remainingD string, err error) {
 	// attempt to consume a command from the path given by d
 	svgCmd := reSVGCommand.FindString(d)
 	if len(svgCmd) > 0 {
 		svgCmdChar := reCommand.FindString(svgCmd)
 		if len(svgCmdChar) > 0 {
 			// fmt.Println(svgCmdChar)
-			remaining_d = d[len(svgCmd):]
-			return true, svgCmdChar, remaining_d, nil
+			remainingD = d[len(svgCmd):]
+			return true, svgCmdChar, remainingD, nil
 		} else {
 			return false, "", d, errors.New("Command not supported!")
 		}
@@ -380,8 +380,9 @@ func consumeCommand(d string) (commandFound bool, commandStr string, remaining_d
 	return false, "", d, nil
 }
 
-func consumeNumber(d string) (numberFound bool, number float64, remaining_d string, err error) {
+func consumeNumber(d string) (numberFound bool, number float64, remainingD string, err error) {
 	// attempt to consume a number from the path given by d
+	// fmt.Println(d)
 	svgNum := reSVGNumber.FindString(d)
 	if len(svgNum) > 0 {
 		svgNumOnly := reFloat.FindString(svgNum)
@@ -391,8 +392,8 @@ func consumeNumber(d string) (numberFound bool, number float64, remaining_d stri
 				return false, 0, d, err
 			} else {
 				// fmt.Println(svgNumOnly)
-				remaining_d = d[len(svgNum):]
-				return true, number, remaining_d, nil
+				remainingD = d[len(svgNum):]
+				return true, number, remainingD, nil
 			}
 		}
 		return false, 0, d, nil
