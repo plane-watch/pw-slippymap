@@ -123,6 +123,12 @@ func TestSlippyMap(t *testing.T) {
 		assert.Equal(t, SLIPPYMAP_HEIGHT, mapHeightPx, "GetSize returned unexpected height")
 	})
 
+	// test GetNumTiles
+	t.Run("Test GetNumTiles", func(t *testing.T) {
+		numTiles := smInitial.GetNumTiles()
+		assert.Positive(t, numTiles)
+	})
+
 	// test SetSize
 	t.Run("Test GetSize", func(t *testing.T) {
 		smInitial.SetSize(SLIPPYMAP_WIDTH+500, SLIPPYMAP_HEIGHT+500)
@@ -130,7 +136,6 @@ func TestSlippyMap(t *testing.T) {
 		assert.Equal(t, SLIPPYMAP_WIDTH+500, mapWidthPx, "GetSize returned unexpected width after SetSize")
 		assert.Equal(t, SLIPPYMAP_HEIGHT+500, mapHeightPx, "GetSize returned unexpected height after SetSize")
 	})
-
 }
 
 func TestGpsCoordsToTileInfo(t *testing.T) {
