@@ -6,6 +6,7 @@ import (
 	_ "image/png"
 	"log"
 	"math"
+	"sync"
 
 	"github.com/hajimehoshi/ebiten/v2"
 	"github.com/hajimehoshi/ebiten/v2/ebitenutil"
@@ -24,9 +25,10 @@ type MapTile struct {
 	osmY      int           // OSM Y
 	zoomLevel int           // OSM Zoom Level
 	img       *ebiten.Image // Image data
-	offsetX   int           // top-left pixel location of tile
-	offsetY   int           // top-right pixel location of tile
-	alpha     float64       // tile transparency (for fade-in)
+	imgMutex  sync.Mutex
+	offsetX   int     // top-left pixel location of tile
+	offsetY   int     // top-right pixel location of tile
+	alpha     float64 // tile transparency (for fade-in)
 }
 
 type SlippyMap struct {
@@ -36,7 +38,8 @@ type SlippyMap struct {
 	offsetY     int  // hold the current Y offset
 	need_update bool // do we need to process Update()
 
-	tiles []*MapTile // map tiles
+	tiles      []*MapTile // map tiles
+	tilesMutex sync.Mutex
 
 	mapWidthPx  int // number of pixels wide
 	mapHeightPx int // number of pixels high
@@ -79,7 +82,9 @@ func (sm *SlippyMap) Draw(screen *ebiten.Image) {
 		dio.ColorM.Scale(1, 1, 1, (*t).alpha)
 
 		// draw the tile
+		t.imgMutex.Lock()
 		sm.img.DrawImage(t.img, dio)
+		t.imgMutex.Unlock()
 
 		// debugging: print the OSM tile X/Y/Z
 		dbgText := fmt.Sprintf("%d/%d/%d", (*t).osmX, (*t).osmY, (*t).zoomLevel)
@@ -333,7 +338,9 @@ func (sm *SlippyMap) makeTile(osmX, osmY, offsetX, offsetY int) {
 		if err != nil {
 			log.Fatal(err)
 		}
+		t.imgMutex.Lock()
 		t.img.DrawImage(img, nil)
+		t.imgMutex.Unlock()
 	}()
 
 	// Add tile to slippymap
