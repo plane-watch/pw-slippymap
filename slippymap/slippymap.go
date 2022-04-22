@@ -107,7 +107,7 @@ func (sm *SlippyMap) Update(deltaOffsetX, deltaOffsetY int, forceUpdate bool) {
 	//   * user has moved the map; or
 	//   * tile fade-in happenning; or
 	//   * new tiles were created
-	if deltaOffsetX != sm.offsetX || deltaOffsetY != sm.offsetY || sm.need_update {
+	if deltaOffsetX != sm.offsetX || deltaOffsetY != sm.offsetY || forceUpdate || sm.need_update {
 
 		// clean up tiles off the screen
 		for i, t := range sm.tiles {
