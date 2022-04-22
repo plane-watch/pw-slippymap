@@ -6,9 +6,11 @@ import (
 	"log"
 	"pw_slippymap/markers"
 	"pw_slippymap/slippymap"
+	"pw_slippymap/userinput"
 
 	"github.com/hajimehoshi/ebiten/v2"
 	"github.com/hajimehoshi/ebiten/v2/ebitenutil"
+	"github.com/hajimehoshi/ebiten/v2/inpututil"
 )
 
 const (
@@ -27,9 +29,6 @@ var (
 	windowWidth  int
 	windowHeight int
 
-	// Mouse
-	userMouse UserMouse
-
 	// Debugging
 	dbgMouseOverTileText string
 	dbgMouseLatLongText  string
@@ -41,26 +40,21 @@ var (
 )
 
 type Game struct {
+
+	// graphics
 	slippymap *slippymap.SlippyMap // hold the slippymap within the "game" object
+
+	// user input
+	touchIDs []ebiten.TouchID
+	strokes  map[*userinput.Stroke]struct{}
 }
 
-type UserMouse struct {
-	// struct that represents the user's mouse cursor
-	prevX, prevY     int // previous tick X/Y
-	currX, currY     int // current tick X/Y
-	offsetX, offsetY int // offset of current X/Y from previous X/Y
-}
+func (g *Game) updateStroke(stroke *userinput.Stroke) {
+	stroke.Update()
+	if !stroke.IsReleased() {
+		return
+	}
 
-func (um *UserMouse) update(x, y int) {
-	// add "update" function to UserMouse struct
-	// this function should be called on the game's "Update"
-	// sets the current tick X/Y, previous tick X/Y, and the offset X/Y (from previous X/Y)
-	um.prevX = um.currX
-	um.prevY = um.currY
-	um.currX = x
-	um.currY = y
-	um.offsetX = um.currX - um.prevX
-	um.offsetY = um.currY - um.prevY
 }
 
 func (g *Game) Update() error {
@@ -73,8 +67,10 @@ func (g *Game) Update() error {
 	// zoom: honour the cooldown (helps when doing the two-finger-scroll on a macbook touchpad) & trigger on mousewheel y-axis
 	if zoomCoolDown == 0 && dy != 0 {
 
+		mouseX, mouseY := ebiten.CursorPosition()
+
 		// zoom: get mouse cursor lat/long
-		ctLat, ctLong, err := g.slippymap.GetLatLongAtPixel(userMouse.currX, userMouse.currY)
+		ctLat, ctLong, err := g.slippymap.GetLatLongAtPixel(mouseX, mouseY)
 		if err != nil {
 			// if error getting mouse cursor lat/long, log.
 			log.Print("Cannot zoom")
@@ -103,17 +99,30 @@ func (g *Game) Update() error {
 		}
 	}
 
-	// update the mouse cursor position
-	userMouse.update(ebiten.CursorPosition())
-
-	// handle dragging
-	if ebiten.IsMouseButtonPressed(ebiten.MouseButtonLeft) {
-		// update the map with the new offset
-		g.slippymap.Update(userMouse.offsetX, userMouse.offsetY, false)
-	} else {
-		// otherwise update with no offset
-		g.slippymap.Update(0, 0, false)
+	// mouse / touch dragging
+	forceUpdate := false
+	if inpututil.IsMouseButtonJustPressed(ebiten.MouseButtonLeft) {
+		s := userinput.NewStroke(&userinput.MouseStrokeSource{})
+		s.SetDraggingObject(*g.slippymap)
+		g.strokes[s] = struct{}{}
 	}
+	g.touchIDs = inpututil.AppendJustPressedTouchIDs(g.touchIDs[:0])
+	for _, id := range g.touchIDs {
+		s := userinput.NewStroke(&userinput.TouchStrokeSource{id})
+		s.SetDraggingObject(*g.slippymap)
+		g.strokes[s] = struct{}{}
+	}
+	for s := range g.strokes {
+		g.updateStroke(s)
+		if s.IsReleased() {
+			delete(g.strokes, s)
+		}
+		mouseX, mouseY := s.PositionDiffFromPrevious()
+		g.slippymap.MoveBy(mouseX, mouseY)
+		forceUpdate = true
+	}
+
+	g.slippymap.Update(forceUpdate)
 
 	// TEMPORARY/TESTING: rotate the plane sprites for testing
 	dbgMarkerRotateAngle += 0.5
@@ -153,7 +162,8 @@ func (g *Game) Draw(screen *ebiten.Image) {
 	ebitenutil.DebugPrintAt(screen, fmt.Sprintf("TPS: %0.2f  FPS: %0.2f", ebiten.CurrentTPS(), ebiten.CurrentFPS()), 0, 0)
 
 	// debugging: show mouse position
-	dbgMousePosTxt := fmt.Sprintf("Mouse position: %d, %d\n", userMouse.currX, userMouse.currY)
+	mouseX, mouseY := ebiten.CursorPosition()
+	dbgMousePosTxt := fmt.Sprintf("Mouse position: %d, %d\n", mouseX, mouseY)
 	ebitenutil.DebugPrintAt(screen, dbgMousePosTxt, 0, 15)
 
 	// debugging: show zoom level
@@ -161,7 +171,7 @@ func (g *Game) Draw(screen *ebiten.Image) {
 	ebitenutil.DebugPrintAt(screen, dbgZoomLevelTxt, 0, 30)
 
 	// debugging: show tile moused over
-	ctX, ctY, ctZ, err := g.slippymap.GetTileAtPixel(userMouse.currX, userMouse.currY)
+	ctX, ctY, ctZ, err := g.slippymap.GetTileAtPixel(mouseX, mouseY)
 	if err != nil {
 		dbgMouseOverTileText = "Mouse over no tile"
 	} else {
@@ -170,7 +180,7 @@ func (g *Game) Draw(screen *ebiten.Image) {
 	ebitenutil.DebugPrintAt(screen, dbgMouseOverTileText, 0, 45)
 
 	// debugging: show lat/long under mouse
-	ctLat, ctLong, err := g.slippymap.GetLatLongAtPixel(userMouse.currX, userMouse.currY)
+	ctLat, ctLong, err := g.slippymap.GetLatLongAtPixel(mouseX, mouseY)
 	if err != nil {
 		dbgMouseLatLongText = "Mouse over no tile"
 	} else {
@@ -268,6 +278,7 @@ func main() {
 	// prepare "game"
 	g := &Game{
 		slippymap: &sm,
+		strokes:   map[*userinput.Stroke]struct{}{},
 	}
 
 	// In FPSModeVsyncOffMinimum, the game's Update and Draw are called only when

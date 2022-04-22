@@ -96,14 +96,27 @@ func (sm *SlippyMap) Draw(screen *ebiten.Image) {
 
 }
 
-func (sm *SlippyMap) Update(deltaOffsetX, deltaOffsetY int, forceUpdate bool) {
+func (sm *SlippyMap) MoveBy(deltaOffsetX, deltaOffsetY int) {
+	// tile reposition & alpha increase if needed
+	for _, t := range sm.tiles {
+		// update offset if required (ie, user is dragging the map around)
+		if deltaOffsetX != 0 || deltaOffsetY != 0 {
+			t.offsetX = t.offsetX + deltaOffsetX
+			t.offsetY = t.offsetY + deltaOffsetY
+		}
+	}
+	if deltaOffsetX != 0 || deltaOffsetY != 0 {
+		sm.need_update = true
+	}
+}
+
+func (sm *SlippyMap) Update(forceUpdate bool) {
 	// Updates the map
 	//  - Loads any missing tiles
 	//  - Cleans up any tiles that are "out of bounds"
 	//  - Moves tiles as-per deltaOffsetX/Y
 
 	var wereTilesCleanedUp bool // were off screen tiles cleaned up?
-	var wereTilesMoved bool     // were tiles moved?
 	var wereTilesAlphad bool    // did tiles have their alpha changed?
 	var wereTilesCreated bool   // were tiles created?
 
@@ -112,7 +125,7 @@ func (sm *SlippyMap) Update(deltaOffsetX, deltaOffsetY int, forceUpdate bool) {
 	//   * user has moved the map; or
 	//   * tile fade-in happenning; or
 	//   * new tiles were created
-	if deltaOffsetX != sm.offsetX || deltaOffsetY != sm.offsetY || forceUpdate || sm.need_update {
+	if forceUpdate || sm.need_update {
 
 		// clean up tiles off the screen
 		for i, t := range sm.tiles {
@@ -127,13 +140,6 @@ func (sm *SlippyMap) Update(deltaOffsetX, deltaOffsetY int, forceUpdate bool) {
 
 		// tile reposition & alpha increase if needed
 		for _, t := range sm.tiles {
-			// update offset if required (ie, user is dragging the map around)
-			if (deltaOffsetX != 0 && deltaOffsetY != 0) || forceUpdate {
-				t.offsetX = t.offsetX + deltaOffsetX
-				t.offsetY = t.offsetY + deltaOffsetY
-				// sm.tiles[i] = (*t)
-				wereTilesMoved = true
-			}
 
 			// increase alpha channel (for fade in, if needed)
 			if (*t).alpha < 1 {
@@ -169,7 +175,7 @@ func (sm *SlippyMap) Update(deltaOffsetX, deltaOffsetY int, forceUpdate bool) {
 	}
 
 	// work out whether this function needs to run next iteration
-	if wereTilesCleanedUp || wereTilesMoved || wereTilesAlphad || wereTilesCreated {
+	if wereTilesCleanedUp || wereTilesAlphad || wereTilesCreated {
 		sm.need_update = true
 	} else {
 		sm.need_update = false
@@ -497,7 +503,7 @@ func NewSlippyMap(mapWidthPx, mapHeightPx, zoomLevel int, centreLat, centreLong 
 	sm.makeTile(centreTileOSMX, centreTileOSMY, centreTileOffsetX, centreTileOffsetY)
 
 	// force initial update
-	sm.Update(0, 0, true)
+	sm.Update(true)
 
 	// return the slippymap
 	return sm, nil
