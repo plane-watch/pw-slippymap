@@ -82,6 +82,9 @@ func TestSlippyMap(t *testing.T) {
 	// test Update (moving map off screen)
 	t.Run("Test Update moving", func(t *testing.T) {
 		smInitial.Update(-SLIPPYMAP_WIDTH, -SLIPPYMAP_HEIGHT, true)
+		smInitial.Update(-SLIPPYMAP_WIDTH, -SLIPPYMAP_HEIGHT, true)
+		smInitial.Update(-SLIPPYMAP_WIDTH, -SLIPPYMAP_HEIGHT, true)
+		smInitial.Update(-SLIPPYMAP_WIDTH, -SLIPPYMAP_HEIGHT, true)
 	})
 
 	// test GetZoomLevel
