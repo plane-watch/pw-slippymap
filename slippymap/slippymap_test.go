@@ -35,7 +35,7 @@ func TestSlippyMap(t *testing.T) {
 
 	// test NewSlippyMap
 	t.Run("Test NewSlippyMap", func(t *testing.T) {
-		smInitial, err = NewSlippyMap(SLIPPYMAP_WIDTH, SLIPPYMAP_HEIGHT, INIT_ZOOM_LEVEL, INIT_CENTRE_LAT, INIT_CENTRE_LONG, tileProvider)
+		smInitial = NewSlippyMap(SLIPPYMAP_WIDTH, SLIPPYMAP_HEIGHT, INIT_ZOOM_LEVEL, INIT_CENTRE_LAT, INIT_CENTRE_LONG, tileProvider)
 		require.NoError(t, err, "NewSlippyMap returned error")
 	})
 
@@ -75,48 +75,8 @@ func TestSlippyMap(t *testing.T) {
 	// test Update
 	t.Run("Test Update", func(t *testing.T) {
 		for i := 0; i <= 100; i++ {
-			smInitial.Update(0, 0, true)
+			smInitial.Update(true)
 		}
-	})
-
-	// test Update (moving map off screen)
-	t.Run("Test Update moving", func(t *testing.T) {
-		smInitial.Update(-SLIPPYMAP_WIDTH, -SLIPPYMAP_HEIGHT, true)
-		smInitial.Update(-SLIPPYMAP_WIDTH, -SLIPPYMAP_HEIGHT, true)
-		smInitial.Update(-SLIPPYMAP_WIDTH, -SLIPPYMAP_HEIGHT, true)
-		smInitial.Update(-SLIPPYMAP_WIDTH, -SLIPPYMAP_HEIGHT, true)
-	})
-
-	// test GetZoomLevel
-	t.Run("Test GetZoomLevel", func(t *testing.T) {
-		zl := smInitial.GetZoomLevel()
-		assert.Equal(t, INIT_ZOOM_LEVEL, zl, "GetZoomLevel result not expected")
-	})
-
-	t.Run("Test SetZoomLevel", func(t *testing.T) {
-		// test SetZoomLevel
-		_, err = smInitial.SetZoomLevel(INIT_ZOOM_LEVEL+1, INIT_CENTRE_LAT, INIT_CENTRE_LONG)
-		require.NoError(t, err, "SetZoomLevel returned error")
-
-		// test SetZoomLevel error
-		_, err = smInitial.SetZoomLevel(ZOOM_LEVEL_MAX+1, INIT_CENTRE_LAT, INIT_CENTRE_LONG)
-		require.Error(t, err, "SetZoomLevel did not return an error when one was expected")
-
-		// test SetZoomLevel error
-		_, err = smInitial.SetZoomLevel(ZOOM_LEVEL_MIN-1, INIT_CENTRE_LAT, INIT_CENTRE_LONG)
-		require.Error(t, err, "SetZoomLevel did not return an error when one was expected")
-	})
-
-	// test ZoomIn
-	t.Run("Test ZoomIn", func(t *testing.T) {
-		_, err = smInitial.ZoomIn(INIT_CENTRE_LAT, INIT_CENTRE_LONG)
-		require.NoError(t, err, "ZoomIn returned error")
-	})
-
-	// test ZoomOut
-	t.Run("Test ZoomOut", func(t *testing.T) {
-		_, err = smInitial.ZoomOut(INIT_CENTRE_LAT, INIT_CENTRE_LONG)
-		require.NoError(t, err, "ZoomOut returned error")
 	})
 
 	// test GetSize
@@ -138,6 +98,51 @@ func TestSlippyMap(t *testing.T) {
 		mapWidthPx, mapHeightPx := smInitial.GetSize()
 		assert.Equal(t, SLIPPYMAP_WIDTH+500, mapWidthPx, "GetSize returned unexpected width after SetSize")
 		assert.Equal(t, SLIPPYMAP_HEIGHT+500, mapHeightPx, "GetSize returned unexpected height after SetSize")
+	})
+
+	// test Update (moving map off screen)
+	t.Run("Test MoveBy", func(t *testing.T) {
+		smInitial.MoveBy(-SLIPPYMAP_WIDTH, -SLIPPYMAP_HEIGHT)
+		smInitial.Update(true)
+		smInitial.MoveBy(-SLIPPYMAP_WIDTH, -SLIPPYMAP_HEIGHT)
+		smInitial.Update(true)
+		smInitial.MoveBy(-SLIPPYMAP_WIDTH, -SLIPPYMAP_HEIGHT)
+		smInitial.Update(true)
+		smInitial.MoveBy(-SLIPPYMAP_WIDTH, -SLIPPYMAP_HEIGHT)
+		smInitial.Update(true)
+	})
+
+	// test GetZoomLevel
+	t.Run("Test GetZoomLevel", func(t *testing.T) {
+		zl := smInitial.GetZoomLevel()
+		assert.Equal(t, INIT_ZOOM_LEVEL, zl, "GetZoomLevel result not expected")
+	})
+
+	t.Run("Test SetZoomLevel", func(t *testing.T) {
+		// test SetZoomLevel
+		smZoomMin, err := smInitial.SetZoomLevel(ZOOM_LEVEL_MIN, INIT_CENTRE_LAT, INIT_CENTRE_LONG)
+		require.NoError(t, err, "SetZoomLevel returned error")
+		smZoomMin.Update(true)
+
+		// test SetZoomLevel error
+		_, err = smInitial.SetZoomLevel(ZOOM_LEVEL_MAX+1, INIT_CENTRE_LAT, INIT_CENTRE_LONG)
+		require.Error(t, err, "SetZoomLevel did not return an error when one was expected")
+
+		// test SetZoomLevel error
+		_, err = smInitial.SetZoomLevel(ZOOM_LEVEL_MIN-1, INIT_CENTRE_LAT, INIT_CENTRE_LONG)
+		require.Error(t, err, "SetZoomLevel did not return an error when one was expected")
+	})
+
+	// test ZoomIn
+	t.Run("Test ZoomIn", func(t *testing.T) {
+		_, err = smInitial.ZoomIn(INIT_CENTRE_LAT, INIT_CENTRE_LONG)
+		require.NoError(t, err, "ZoomIn returned error")
+	})
+
+	// test ZoomOut
+	t.Run("Test ZoomOut", func(t *testing.T) {
+		_, err = smInitial.ZoomOut(INIT_CENTRE_LAT, INIT_CENTRE_LONG)
+		require.NoError(t, err, "ZoomOut returned error")
 	})
 }
 
