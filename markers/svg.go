@@ -49,10 +49,10 @@ const (
 
 var (
 	// precompile regex patterns
-	reSVGCommand = regexp.MustCompile(`^\s*,?[MmLlHhVvCcSsQqTtAaZz]{1}`)                    // consumes a command
-	reSVGNumber  = regexp.MustCompile(`^[\s,]*(-?[0-9]+\.?[0-9]*\b)|(-?[0-9][eE]-?[0-9]*)`) // consumes a float or scientific notated float
-	reCommand    = regexp.MustCompile(`[MmLlHhVvCcSsQqTtAaZz]{1}`)                          // return just the command component
-	reFloat      = regexp.MustCompile(`([\-0-9\.!e!E]+)|(-?[0-9]+[eE]-?[0-9]+)`)            // return just the number component
+	reSVGCommand = regexp.MustCompile(`^\s*,?[MmLlHhVvCcSsQqTtAaZz]{1}`)                                  // consumes a command
+	reSVGNumber  = regexp.MustCompile(`(^[\s,]*-?[0-9]\.?[0-9]*[eE]-?[0-9]*)|(^[\s,]*-?[0-9]+\.?[0-9]*)`) // consumes a float or scientific notated float
+	reCommand    = regexp.MustCompile(`[MmLlHhVvCcSsQqTtAaZz]{1}`)                                        // return just the command component
+	reFloat      = regexp.MustCompile(`([\-0-9\.!e!E]+)|(-?[0-9]+[eE]-?[0-9]+)`)                          // return just the number component
 )
 
 // SVG struct to assist with building the vector.Path
