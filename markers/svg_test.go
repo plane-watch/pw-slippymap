@@ -9,23 +9,7 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-// func (svg *SVG) moveTo(d string, dx bool) (remaining_d string, err error) {
-
 func TestRenderSVG(t *testing.T) {
-
-	// r := renderSVG{
-	// 	scale:        1,
-	// 	d:            v.svgPath,
-	// 	pathStroked:  true,
-	// 	pathFilled:   true,
-	// 	bgFilled:     false,
-	// 	strokeWidth:  2,
-	// strokeColour: RGBA{1, 0, 0, 1},
-	// fillColour:   RGBA{0, 1, 0, 1},
-	// bgColour:     RGBA{0, 0, 1, 1},
-	// 	offsetX:      1,
-	// 	offsetY:      1,
-	// }
 
 	// Pre-render aircraft concurrently
 	for _, v := range Aircraft {
