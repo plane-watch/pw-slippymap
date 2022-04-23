@@ -21,14 +21,22 @@ const (
 )
 
 type MapTile struct {
-	osmX      int           // OSM X
-	osmY      int           // OSM Y
-	zoomLevel int           // OSM Zoom Level
-	img       *ebiten.Image // Image data
-	imgMutex  sync.Mutex
-	offsetX   int     // top-left pixel location of tile
-	offsetY   int     // top-right pixel location of tile
-	alpha     float64 // tile transparency (for fade-in)
+
+	// OpenStreetMap tile x/y/zoom
+	osmX      int // OSM X
+	osmY      int // OSM Y
+	zoomLevel int // OSM Zoom Level
+
+	// Tile image
+	img      *ebiten.Image // Image data
+	imgMutex sync.Mutex    // Mutex to avoid races
+
+	// Image location
+	offsetX int // top-left pixel location of tile
+	offsetY int // top-right pixel location of tile
+
+	// Alpha for smooth fade-in
+	alpha float64 // tile transparency (for fade-in)
 }
 
 type SlippyMap struct {
@@ -39,7 +47,7 @@ type SlippyMap struct {
 	need_update bool // do we need to process Update()
 
 	tiles      []*MapTile // map tiles
-	tilesMutex sync.Mutex
+	tilesMutex sync.Mutex // Mutex to avoid races
 
 	mapWidthPx  int // number of pixels wide
 	mapHeightPx int // number of pixels high
