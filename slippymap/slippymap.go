@@ -20,12 +20,19 @@ const (
 	TILE_FADEIN_ALPHA_PER_TICK = 0.05 // amount of alpha added per tick for tile fade-in
 )
 
-type MapTile struct {
+type OSMTileID struct {
 
 	// OpenStreetMap tile x/y/zoom
-	osmX      int // OSM X
-	osmY      int // OSM Y
-	zoomLevel int // OSM Zoom Level
+	x    int // OSM X
+	y    int // OSM Y
+	zoom int // OSM Zoom Level
+
+}
+
+type MapTile struct {
+
+	// OpenStreetMap tile identifier
+	osm OSMTileID
 
 	// Tile image
 	img      *ebiten.Image // Image data
@@ -37,6 +44,12 @@ type MapTile struct {
 
 	// Alpha for smooth fade-in
 	alpha float64 // tile transparency (for fade-in)
+
+	// Information of surrounding tiles
+	neighbourTileNorth int
+	neighbourTileSouth int
+	neighbourTileWest  int
+	neighbourTileEast  int
 }
 
 type SlippyMap struct {
@@ -95,7 +108,7 @@ func (sm *SlippyMap) Draw(screen *ebiten.Image) {
 		t.imgMutex.Unlock()
 
 		// debugging: print the OSM tile X/Y/Z
-		dbgText := fmt.Sprintf("%d/%d/%d", (*t).osmX, (*t).osmY, (*t).zoomLevel)
+		dbgText := fmt.Sprintf("%d/%d/%d", (*t).osm.x, (*t).osm.y, (*t).osm.zoom)
 		ebitenutil.DebugPrintAt(sm.img, dbgText, (*t).offsetX, (*t).offsetY)
 	}
 
@@ -199,7 +212,7 @@ func (sm *SlippyMap) makeTileAbove(existingTile *MapTile) (tileCreated bool) {
 	// makes the tile above existingTile, if it does not already exist or would be out of bounds
 
 	// check to see if tile above already exists
-	newTileOSMY := (*existingTile).osmY - 1
+	newTileOSMY := (*existingTile).osm.y - 1
 
 	// honour edges of map
 	if newTileOSMY == -1 {
@@ -207,7 +220,7 @@ func (sm *SlippyMap) makeTileAbove(existingTile *MapTile) (tileCreated bool) {
 	}
 
 	for _, t := range sm.tiles {
-		if (*t).osmY == newTileOSMY && (*t).osmX == (*existingTile).osmX {
+		if (*t).osm.y == newTileOSMY && (*t).osm.x == (*existingTile).osm.x {
 			// the tile already exists, bail out
 			return false
 		}
@@ -218,7 +231,7 @@ func (sm *SlippyMap) makeTileAbove(existingTile *MapTile) (tileCreated bool) {
 	// if the tile would not be out of bounds...
 	if sm.isOutOfBounds((*existingTile).offsetX, newTileOffsetY) != true {
 		// make the new tile
-		sm.makeTile((*existingTile).osmX, newTileOSMY, (*existingTile).offsetX, newTileOffsetY)
+		sm.makeTile((*existingTile).osm.x, newTileOSMY, (*existingTile).offsetX, newTileOffsetY)
 		return true
 	}
 	return false
@@ -228,7 +241,7 @@ func (sm *SlippyMap) makeTileBelow(existingTile *MapTile) (tileCreated bool) {
 	// makes the tile below existingTile, if it does not already exist or would be out of bounds
 
 	// check to see if tile below already exists
-	newTileOSMY := (*existingTile).osmY + 1
+	newTileOSMY := (*existingTile).osm.y + 1
 
 	// honour edges of map
 	if newTileOSMY == int(math.Pow(2, float64(sm.zoomLevel))) {
@@ -236,7 +249,7 @@ func (sm *SlippyMap) makeTileBelow(existingTile *MapTile) (tileCreated bool) {
 	}
 
 	for _, t := range sm.tiles {
-		if t.osmY == newTileOSMY && t.osmX == (*existingTile).osmX {
+		if t.osm.y == newTileOSMY && t.osm.x == (*existingTile).osm.x {
 			// the tile already exists, bail out
 			return false
 		}
@@ -247,7 +260,7 @@ func (sm *SlippyMap) makeTileBelow(existingTile *MapTile) (tileCreated bool) {
 	// if the tile would not be out of bounds...
 	if sm.isOutOfBounds((*existingTile).offsetX, newTileOffsetY) != true {
 		// make the new tile
-		sm.makeTile((*existingTile).osmX, newTileOSMY, (*existingTile).offsetX, newTileOffsetY)
+		sm.makeTile((*existingTile).osm.x, newTileOSMY, (*existingTile).offsetX, newTileOffsetY)
 		return true
 	}
 	return false
@@ -257,7 +270,7 @@ func (sm *SlippyMap) makeTileToTheLeft(existingTile *MapTile) (tileCreated bool)
 	// makes the tile to the left of existingTile, if it does not already exist or would be out of bounds
 
 	// check to see if tile to the left already exists
-	newTileOSMX := (*existingTile).osmX - 1
+	newTileOSMX := (*existingTile).osm.x - 1
 
 	// honour edges of map
 	if newTileOSMX == -1 {
@@ -265,7 +278,7 @@ func (sm *SlippyMap) makeTileToTheLeft(existingTile *MapTile) (tileCreated bool)
 	}
 
 	for _, t := range sm.tiles {
-		if t.osmX == newTileOSMX && t.osmY == (*existingTile).osmY {
+		if t.osm.x == newTileOSMX && t.osm.y == (*existingTile).osm.y {
 			// the tile already exists, bail out
 			return false
 		}
@@ -276,7 +289,7 @@ func (sm *SlippyMap) makeTileToTheLeft(existingTile *MapTile) (tileCreated bool)
 	// if the tile would not be out of bounds...
 	if sm.isOutOfBounds(newTileOffsetX, (*existingTile).offsetY) != true {
 		// make the new tile
-		sm.makeTile(newTileOSMX, (*existingTile).osmY, newTileOffsetX, (*existingTile).offsetY)
+		sm.makeTile(newTileOSMX, (*existingTile).osm.y, newTileOffsetX, (*existingTile).offsetY)
 		return true
 	}
 	return false
@@ -286,7 +299,7 @@ func (sm *SlippyMap) makeTileToTheRight(existingTile *MapTile) (tileCreated bool
 	// makes the tile to the right of existingTile, if it does not already exist or would be out of bounds
 
 	// check to see if tile to the right already exists
-	newTileOSMX := (*existingTile).osmX + 1
+	newTileOSMX := (*existingTile).osm.x + 1
 
 	// honour edges of map
 	if newTileOSMX == int(math.Pow(2, float64(sm.zoomLevel))) {
@@ -294,7 +307,7 @@ func (sm *SlippyMap) makeTileToTheRight(existingTile *MapTile) (tileCreated bool
 	}
 
 	for _, t := range sm.tiles {
-		if t.osmX == newTileOSMX && t.osmY == (*existingTile).osmY {
+		if t.osm.x == newTileOSMX && t.osm.y == (*existingTile).osm.y {
 			// the tile already exists, bail out
 			return false
 		}
@@ -305,7 +318,7 @@ func (sm *SlippyMap) makeTileToTheRight(existingTile *MapTile) (tileCreated bool
 	// if the tile would not be out of bounds...
 	if sm.isOutOfBounds(newTileOffsetX, (*existingTile).offsetY) != true {
 		// make the new tile
-		sm.makeTile(newTileOSMX, (*existingTile).osmY, newTileOffsetX, (*existingTile).offsetY)
+		sm.makeTile(newTileOSMX, (*existingTile).osm.y, newTileOffsetX, (*existingTile).offsetY)
 		return true
 	}
 	return false
@@ -334,19 +347,23 @@ func (sm *SlippyMap) isOutOfBounds(pixelX, pixelY int) (outOfBounds bool) {
 func (sm *SlippyMap) makeTile(osmX, osmY, offsetX, offsetY int) {
 	// Creates a new tile on the slippymap
 
+	osm := OSMTileID{
+		x:    osmX,
+		y:    osmY,
+		zoom: sm.zoomLevel,
+	}
+
 	// Create the tile object
 	t := MapTile{
-		osmX:      osmX,
-		osmY:      osmY,
-		offsetX:   offsetX,
-		offsetY:   offsetY,
-		zoomLevel: sm.zoomLevel,
-		img:       ebiten.NewImage(TILE_WIDTH_PX, TILE_WIDTH_PX),
+		osm:     osm,
+		offsetX: offsetX,
+		offsetY: offsetY,
+		img:     ebiten.NewImage(TILE_WIDTH_PX, TILE_WIDTH_PX),
 	}
 
 	go func() {
 		// get tile artwork
-		tilePath, err := sm.tileProvider.GetTileAddress(t.osmX, t.osmY, t.zoomLevel)
+		tilePath, err := sm.tileProvider.GetTileAddress(t.osm.x, t.osm.y, t.osm.zoom)
 		if err != nil {
 			log.Fatal(err)
 		}
@@ -387,7 +404,7 @@ func (sm *SlippyMap) GetTileAtPixel(x, y int) (osmX, osmY, zoomLevel int, err er
 	for _, t := range sm.tiles {
 		if x >= (*t).offsetX && x < (*t).offsetX+TILE_WIDTH_PX {
 			if y >= (*t).offsetY && y < (*t).offsetY+TILE_HEIGHT_PX {
-				return (*t).osmX, (*t).osmY, (*t).zoomLevel, nil
+				return (*t).osm.x, (*t).osm.y, (*t).osm.zoom, nil
 			}
 		}
 	}
@@ -407,7 +424,7 @@ func (sm *SlippyMap) GetLatLongAtPixel(x, y int) (latDeg, longDeg float64, err e
 	tileFound := false
 	var topLeftX, topLeftY int
 	for _, t := range sm.tiles {
-		if (*t).osmX == osmX && (*t).osmY == osmY && (*t).zoomLevel == zoomLevel {
+		if (*t).osm.x == osmX && (*t).osm.y == osmY && (*t).osm.zoom == zoomLevel {
 			tileFound = true
 			topLeftX = (*t).offsetX
 			topLeftY = (*t).offsetY
@@ -444,7 +461,7 @@ func (sm *SlippyMap) LatLongToPixel(lat_deg, long_deg float64) (x, y int, err er
 	// find the tile on the slippymap
 	tileFound := false
 	for _, t := range sm.tiles {
-		if (*t).osmX == osmX && (*t).osmY == osmY {
+		if (*t).osm.x == osmX && (*t).osm.y == osmY {
 			tileFound = true
 			x = int(offsetX) + (*t).offsetX
 			y = int(offsetY) + (*t).offsetY
