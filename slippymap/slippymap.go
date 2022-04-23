@@ -127,25 +127,21 @@ func (sm *SlippyMap) Update(forceUpdate bool) {
 	//   * new tiles were created
 	if forceUpdate || sm.need_update {
 
-		// clean up tiles off the screen
+		// for each tile
 		for i, t := range sm.tiles {
+			// increase alpha channel (for fade in, if needed)
+			if (*t).alpha < 1 {
+				(*t).alpha = (*t).alpha + TILE_FADEIN_ALPHA_PER_TICK
+				wereTilesAlphad = true
+				ebiten.ScheduleFrame()
+			}
+
 			// if tile is out of bounds, remove it from slice
 			if sm.isOutOfBounds((*t).offsetX, (*t).offsetY) {
 				sm.tiles[i] = sm.tiles[len(sm.tiles)-1]
 				sm.tiles = sm.tiles[:len(sm.tiles)-1]
 				wereTilesCleanedUp = true
 				break
-			}
-		}
-
-		// tile reposition & alpha increase if needed
-		for _, t := range sm.tiles {
-
-			// increase alpha channel (for fade in, if needed)
-			if (*t).alpha < 1 {
-				(*t).alpha = (*t).alpha + TILE_FADEIN_ALPHA_PER_TICK
-				wereTilesAlphad = true
-				ebiten.ScheduleFrame()
 			}
 		}
 
