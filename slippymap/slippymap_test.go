@@ -35,7 +35,7 @@ func TestSlippyMap(t *testing.T) {
 
 	// test NewSlippyMap
 	t.Run("Test NewSlippyMap", func(t *testing.T) {
-		smInitial, err = NewSlippyMap(SLIPPYMAP_WIDTH, SLIPPYMAP_HEIGHT, INIT_ZOOM_LEVEL, INIT_CENTRE_LAT, INIT_CENTRE_LONG, tileProvider)
+		smInitial = NewSlippyMap(SLIPPYMAP_WIDTH, SLIPPYMAP_HEIGHT, INIT_ZOOM_LEVEL, INIT_CENTRE_LAT, INIT_CENTRE_LONG, tileProvider)
 		require.NoError(t, err, "NewSlippyMap returned error")
 	})
 
@@ -75,13 +75,41 @@ func TestSlippyMap(t *testing.T) {
 	// test Update
 	t.Run("Test Update", func(t *testing.T) {
 		for i := 0; i <= 100; i++ {
-			smInitial.Update(0, 0, true)
+			smInitial.Update(true)
 		}
 	})
 
+	// test GetSize
+	t.Run("Test GetSize", func(t *testing.T) {
+		mapWidthPx, mapHeightPx := smInitial.GetSize()
+		assert.Equal(t, SLIPPYMAP_WIDTH, mapWidthPx, "GetSize returned unexpected width")
+		assert.Equal(t, SLIPPYMAP_HEIGHT, mapHeightPx, "GetSize returned unexpected height")
+	})
+
+	// test GetNumTiles
+	t.Run("Test GetNumTiles", func(t *testing.T) {
+		numTiles := smInitial.GetNumTiles()
+		assert.Positive(t, numTiles)
+	})
+
+	// test SetSize
+	t.Run("Test GetSize", func(t *testing.T) {
+		smInitial.SetSize(SLIPPYMAP_WIDTH+500, SLIPPYMAP_HEIGHT+500)
+		mapWidthPx, mapHeightPx := smInitial.GetSize()
+		assert.Equal(t, SLIPPYMAP_WIDTH+500, mapWidthPx, "GetSize returned unexpected width after SetSize")
+		assert.Equal(t, SLIPPYMAP_HEIGHT+500, mapHeightPx, "GetSize returned unexpected height after SetSize")
+	})
+
 	// test Update (moving map off screen)
-	t.Run("Test Update moving", func(t *testing.T) {
-		smInitial.Update(-SLIPPYMAP_WIDTH, -SLIPPYMAP_HEIGHT, true)
+	t.Run("Test MoveBy", func(t *testing.T) {
+		smInitial.MoveBy(-SLIPPYMAP_WIDTH, -SLIPPYMAP_HEIGHT)
+		smInitial.Update(true)
+		smInitial.MoveBy(-SLIPPYMAP_WIDTH, -SLIPPYMAP_HEIGHT)
+		smInitial.Update(true)
+		smInitial.MoveBy(-SLIPPYMAP_WIDTH, -SLIPPYMAP_HEIGHT)
+		smInitial.Update(true)
+		smInitial.MoveBy(-SLIPPYMAP_WIDTH, -SLIPPYMAP_HEIGHT)
+		smInitial.Update(true)
 	})
 
 	// test GetZoomLevel
@@ -92,8 +120,9 @@ func TestSlippyMap(t *testing.T) {
 
 	t.Run("Test SetZoomLevel", func(t *testing.T) {
 		// test SetZoomLevel
-		_, err = smInitial.SetZoomLevel(INIT_ZOOM_LEVEL+1, INIT_CENTRE_LAT, INIT_CENTRE_LONG)
+		smZoomMin, err := smInitial.SetZoomLevel(ZOOM_LEVEL_MIN, INIT_CENTRE_LAT, INIT_CENTRE_LONG)
 		require.NoError(t, err, "SetZoomLevel returned error")
+		smZoomMin.Update(true)
 
 		// test SetZoomLevel error
 		_, err = smInitial.SetZoomLevel(ZOOM_LEVEL_MAX+1, INIT_CENTRE_LAT, INIT_CENTRE_LONG)
@@ -115,22 +144,6 @@ func TestSlippyMap(t *testing.T) {
 		_, err = smInitial.ZoomOut(INIT_CENTRE_LAT, INIT_CENTRE_LONG)
 		require.NoError(t, err, "ZoomOut returned error")
 	})
-
-	// test GetSize
-	t.Run("Test GetSize", func(t *testing.T) {
-		mapWidthPx, mapHeightPx := smInitial.GetSize()
-		assert.Equal(t, SLIPPYMAP_WIDTH, mapWidthPx, "GetSize returned unexpected width")
-		assert.Equal(t, SLIPPYMAP_HEIGHT, mapHeightPx, "GetSize returned unexpected height")
-	})
-
-	// test SetSize
-	t.Run("Test GetSize", func(t *testing.T) {
-		smInitial.SetSize(SLIPPYMAP_WIDTH+500, SLIPPYMAP_HEIGHT+500)
-		mapWidthPx, mapHeightPx := smInitial.GetSize()
-		assert.Equal(t, SLIPPYMAP_WIDTH+500, mapWidthPx, "GetSize returned unexpected width after SetSize")
-		assert.Equal(t, SLIPPYMAP_HEIGHT+500, mapHeightPx, "GetSize returned unexpected height after SetSize")
-	})
-
 }
 
 func TestGpsCoordsToTileInfo(t *testing.T) {

@@ -3,10 +3,10 @@ package slippymap
 import (
 	"errors"
 	"fmt"
-	"image/color"
 	_ "image/png"
 	"log"
 	"math"
+	"sync"
 
 	"github.com/hajimehoshi/ebiten/v2"
 	"github.com/hajimehoshi/ebiten/v2/ebitenutil"
@@ -25,20 +25,21 @@ type MapTile struct {
 	osmY      int           // OSM Y
 	zoomLevel int           // OSM Zoom Level
 	img       *ebiten.Image // Image data
-	offsetX   int           // top-left pixel location of tile
-	offsetY   int           // top-right pixel location of tile
-	alpha     float64       // tile transparency (for fade-in)
+	imgMutex  sync.Mutex
+	offsetX   int     // top-left pixel location of tile
+	offsetY   int     // top-right pixel location of tile
+	alpha     float64 // tile transparency (for fade-in)
 }
 
 type SlippyMap struct {
-	img       *ebiten.Image // map image
-	re_render bool          //do we need to re-render the image
+	img *ebiten.Image // map image
 
 	offsetX     int  // hold the current X offset
 	offsetY     int  // hold the current Y offset
 	need_update bool // do we need to process Update()
 
-	tiles []*MapTile // map tiles
+	tiles      []*MapTile // map tiles
+	tilesMutex sync.Mutex
 
 	mapWidthPx  int // number of pixels wide
 	mapHeightPx int // number of pixels high
@@ -70,42 +71,52 @@ func (sm *SlippyMap) Draw(screen *ebiten.Image) {
 	// TODO: stretch this image so it looks like we're zooming in, new tiles will fade in over old ones
 	screen.DrawImage(sm.zoomPrevLevelImg, nil)
 
-	// render tiles onto sm.img only if required
-	if sm.re_render {
-		for _, t := range sm.tiles {
-			dio := &ebiten.DrawImageOptions{}
+	// render tiles onto sm.img
+	for _, t := range sm.tiles {
+		dio := &ebiten.DrawImageOptions{}
 
-			// move the image where it needs to be in the window
-			dio.GeoM.Translate(float64((*t).offsetX), float64((*t).offsetY))
+		// move the image where it needs to be in the window
+		dio.GeoM.Translate(float64((*t).offsetX), float64((*t).offsetY))
 
-			// adjust transparency (for fade-in of tiles)
-			dio.ColorM.Scale(1, 1, 1, (*t).alpha)
+		// adjust transparency (for fade-in of tiles)
+		dio.ColorM.Scale(1, 1, 1, (*t).alpha)
 
-			// draw the tile
-			sm.img.DrawImage(t.img, dio)
+		// draw the tile
+		t.imgMutex.Lock()
+		sm.img.DrawImage(t.img, dio)
+		t.imgMutex.Unlock()
 
-			// debugging: print the OSM tile X/Y/Z
-			dbgText := fmt.Sprintf("%d/%d/%d", (*t).osmX, (*t).osmY, (*t).zoomLevel)
-			ebitenutil.DebugPrintAt(sm.img, dbgText, (*t).offsetX, (*t).offsetY)
-		}
-		ebiten.ScheduleFrame()
+		// debugging: print the OSM tile X/Y/Z
+		dbgText := fmt.Sprintf("%d/%d/%d", (*t).osmX, (*t).osmY, (*t).zoomLevel)
+		ebitenutil.DebugPrintAt(sm.img, dbgText, (*t).offsetX, (*t).offsetY)
 	}
 
 	// draw sm.img to the game screen
 	screen.DrawImage(sm.img, nil)
 
-	// don't re-render next pass (unless needed, see Update())
-	sm.re_render = false
 }
 
-func (sm *SlippyMap) Update(deltaOffsetX, deltaOffsetY int, forceUpdate bool) {
+func (sm *SlippyMap) MoveBy(deltaOffsetX, deltaOffsetY int) {
+	// tile reposition & alpha increase if needed
+	for _, t := range sm.tiles {
+		// update offset if required (ie, user is dragging the map around)
+		if deltaOffsetX != 0 || deltaOffsetY != 0 {
+			t.offsetX = t.offsetX + deltaOffsetX
+			t.offsetY = t.offsetY + deltaOffsetY
+		}
+	}
+	if deltaOffsetX != 0 || deltaOffsetY != 0 {
+		sm.need_update = true
+	}
+}
+
+func (sm *SlippyMap) Update(forceUpdate bool) {
 	// Updates the map
 	//  - Loads any missing tiles
 	//  - Cleans up any tiles that are "out of bounds"
 	//  - Moves tiles as-per deltaOffsetX/Y
 
 	var wereTilesCleanedUp bool // were off screen tiles cleaned up?
-	var wereTilesMoved bool     // were tiles moved?
 	var wereTilesAlphad bool    // did tiles have their alpha changed?
 	var wereTilesCreated bool   // were tiles created?
 
@@ -114,10 +125,25 @@ func (sm *SlippyMap) Update(deltaOffsetX, deltaOffsetY int, forceUpdate bool) {
 	//   * user has moved the map; or
 	//   * tile fade-in happenning; or
 	//   * new tiles were created
-	if deltaOffsetX != sm.offsetX || deltaOffsetY != sm.offsetY || sm.need_update {
+	if forceUpdate || sm.need_update {
 
-		// clean up tiles off the screen
+		// for each tile
 		for i, t := range sm.tiles {
+
+			// new tiles created if required
+			// note: if defer is used, the wrong artwork bug seems more prevalent
+			wereTilesCreated = sm.makeTileAbove(t) || wereTilesCreated
+			wereTilesCreated = sm.makeTileToTheLeft(t) || wereTilesCreated
+			wereTilesCreated = sm.makeTileToTheRight(t) || wereTilesCreated
+			wereTilesCreated = sm.makeTileBelow(t) || wereTilesCreated
+
+			// increase alpha channel (for fade in, if needed)
+			if (*t).alpha < 1 {
+				(*t).alpha = (*t).alpha + TILE_FADEIN_ALPHA_PER_TICK
+				wereTilesAlphad = true
+				ebiten.ScheduleFrame()
+			}
+
 			// if tile is out of bounds, remove it from slice
 			if sm.isOutOfBounds((*t).offsetX, (*t).offsetY) {
 				sm.tiles[i] = sm.tiles[len(sm.tiles)-1]
@@ -127,56 +153,33 @@ func (sm *SlippyMap) Update(deltaOffsetX, deltaOffsetY int, forceUpdate bool) {
 			}
 		}
 
-		// tile reposition & alpha increase if needed
-		for _, t := range sm.tiles {
-			// update offset if required (ie, user is dragging the map around)
-			if (deltaOffsetX != 0 && deltaOffsetY != 0) || forceUpdate {
-				t.offsetX = t.offsetX + deltaOffsetX
-				t.offsetY = t.offsetY + deltaOffsetY
-				// sm.tiles[i] = (*t)
-				sm.re_render = true // re-render as visuals have changed
-				wereTilesMoved = true
-			}
-
-			// increase alpha channel (for fade in, if needed)
-			if (*t).alpha < 1 {
-				(*t).alpha = (*t).alpha + TILE_FADEIN_ALPHA_PER_TICK
-				sm.re_render = true // re-render as visuals have changed
-				wereTilesAlphad = true
-			}
-		}
-
-		// new tiles created if required (just do one tile per update)
-		makeAnother := true
-		for makeAnother {
-			makeAnother = false
-			for _, t := range sm.tiles {
-				if sm.makeTileAbove(t) {
-					makeAnother = true
-					wereTilesCreated = true
-					sm.re_render = true // re-render as visuals have changed
-				}
-				if sm.makeTileToTheLeft(t) {
-					makeAnother = true
-					wereTilesCreated = true
-					sm.re_render = true // re-render as visuals have changed
-				}
-				if sm.makeTileToTheRight(t) {
-					makeAnother = true
-					wereTilesCreated = true
-					sm.re_render = true // re-render as visuals have changed
-				}
-				if sm.makeTileBelow(t) {
-					makeAnother = true
-					wereTilesCreated = true
-					sm.re_render = true // re-render as visuals have changed
-				}
-			}
-		}
+		// // new tiles created if required (just do one tile per update)
+		// makeAnother := true
+		// for makeAnother {
+		// 	makeAnother = false
+		// 	for _, t := range sm.tiles {
+		// 		if sm.makeTileAbove(t) {
+		// 			makeAnother = true
+		// 			wereTilesCreated = true
+		// 		}
+		// 		if sm.makeTileToTheLeft(t) {
+		// 			makeAnother = true
+		// 			wereTilesCreated = true
+		// 		}
+		// 		if sm.makeTileToTheRight(t) {
+		// 			makeAnother = true
+		// 			wereTilesCreated = true
+		// 		}
+		// 		if sm.makeTileBelow(t) {
+		// 			makeAnother = true
+		// 			wereTilesCreated = true
+		// 		}
+		// 	}
+		// }
 	}
 
 	// work out whether this function needs to run next iteration
-	if wereTilesCleanedUp || wereTilesMoved || wereTilesAlphad || wereTilesCreated {
+	if wereTilesCleanedUp || wereTilesAlphad || wereTilesCreated {
 		sm.need_update = true
 	} else {
 		sm.need_update = false
@@ -208,7 +211,6 @@ func (sm *SlippyMap) makeTileAbove(existingTile *MapTile) (tileCreated bool) {
 	if sm.isOutOfBounds((*existingTile).offsetX, newTileOffsetY) != true {
 		// make the new tile
 		sm.makeTile((*existingTile).osmX, newTileOSMY, (*existingTile).offsetX, newTileOffsetY)
-		sm.re_render = true
 		return true
 	}
 	return false
@@ -238,7 +240,6 @@ func (sm *SlippyMap) makeTileBelow(existingTile *MapTile) (tileCreated bool) {
 	if sm.isOutOfBounds((*existingTile).offsetX, newTileOffsetY) != true {
 		// make the new tile
 		sm.makeTile((*existingTile).osmX, newTileOSMY, (*existingTile).offsetX, newTileOffsetY)
-		sm.re_render = true
 		return true
 	}
 	return false
@@ -268,7 +269,6 @@ func (sm *SlippyMap) makeTileToTheLeft(existingTile *MapTile) (tileCreated bool)
 	if sm.isOutOfBounds(newTileOffsetX, (*existingTile).offsetY) != true {
 		// make the new tile
 		sm.makeTile(newTileOSMX, (*existingTile).osmY, newTileOffsetX, (*existingTile).offsetY)
-		sm.re_render = true
 		return true
 	}
 	return false
@@ -298,7 +298,6 @@ func (sm *SlippyMap) makeTileToTheRight(existingTile *MapTile) (tileCreated bool
 	if sm.isOutOfBounds(newTileOffsetX, (*existingTile).offsetY) != true {
 		// make the new tile
 		sm.makeTile(newTileOSMX, (*existingTile).osmY, newTileOffsetX, (*existingTile).offsetY)
-		sm.re_render = true
 		return true
 	}
 	return false
@@ -336,7 +335,6 @@ func (sm *SlippyMap) makeTile(osmX, osmY, offsetX, offsetY int) {
 		zoomLevel: sm.zoomLevel,
 		img:       ebiten.NewImage(TILE_WIDTH_PX, TILE_WIDTH_PX),
 	}
-	t.img.Fill(color.Black)
 
 	go func() {
 		// get tile artwork
@@ -350,11 +348,15 @@ func (sm *SlippyMap) makeTile(osmX, osmY, offsetX, offsetY int) {
 		if err != nil {
 			log.Fatal(err)
 		}
+		t.imgMutex.Lock()
 		t.img.DrawImage(img, nil)
+		t.imgMutex.Unlock()
 	}()
 
 	// Add tile to slippymap
 	sm.tiles = append(sm.tiles, &t)
+
+	ebiten.ScheduleFrame()
 }
 
 func (sm *SlippyMap) SetSize(mapWidthPx, mapHeightPx int) {
@@ -468,10 +470,7 @@ func (sm *SlippyMap) SetZoomLevel(zoomLevel int, lat_deg, long_deg float64) (new
 	}
 
 	// create a new slippymap centred on the requested lat/long, at the requested zoom level
-	newsm, err = NewSlippyMap(sm.mapWidthPx, sm.mapHeightPx, zoomLevel, lat_deg, long_deg, sm.tileProvider)
-	if err != nil {
-		return SlippyMap{}, err
-	}
+	newsm = NewSlippyMap(sm.mapWidthPx, sm.mapHeightPx, zoomLevel, lat_deg, long_deg, sm.tileProvider)
 
 	// copy the current map image into the zoom previous level background image
 	sm.Draw(newsm.zoomPrevLevelImg)
@@ -480,7 +479,7 @@ func (sm *SlippyMap) SetZoomLevel(zoomLevel int, lat_deg, long_deg float64) (new
 	return newsm, nil
 }
 
-func NewSlippyMap(mapWidthPx, mapHeightPx, zoomLevel int, centreLat, centreLong float64, tileProvider TileProvider) (sm SlippyMap, err error) {
+func NewSlippyMap(mapWidthPx, mapHeightPx, zoomLevel int, centreLat, centreLong float64, tileProvider TileProvider) (sm SlippyMap) {
 
 	log.Printf("Initialising SlippyMap at %0.4f/%0.4f, zoom level %d", centreLat, centreLong, zoomLevel)
 
@@ -493,7 +492,6 @@ func NewSlippyMap(mapWidthPx, mapHeightPx, zoomLevel int, centreLat, centreLong 
 		zoomPrevLevelImg: ebiten.NewImage(mapWidthPx, mapHeightPx), // initialise image of previous zoom level
 		zoomLevel:        zoomLevel,                                // set zoom level
 		tileProvider:     tileProvider,                             // set tile provider
-		re_render:        true,                                     // ensure first-time render
 		need_update:      true,                                     // ensure first-time update
 	}
 
@@ -506,10 +504,10 @@ func NewSlippyMap(mapWidthPx, mapHeightPx, zoomLevel int, centreLat, centreLong 
 	sm.makeTile(centreTileOSMX, centreTileOSMY, centreTileOffsetX, centreTileOffsetY)
 
 	// force initial update
-	sm.Update(0, 0, true)
+	sm.Update(true)
 
 	// return the slippymap
-	return sm, nil
+	return sm
 }
 
 func calcN(zoom_lvl int) (n int) {
