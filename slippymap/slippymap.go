@@ -129,6 +129,14 @@ func (sm *SlippyMap) Update(forceUpdate bool) {
 
 		// for each tile
 		for i, t := range sm.tiles {
+
+			// new tiles created if required
+			// note: if defer is used, the wrong artwork bug seems more prevalent
+			wereTilesCreated = sm.makeTileAbove(t) || wereTilesCreated
+			wereTilesCreated = sm.makeTileToTheLeft(t) || wereTilesCreated
+			wereTilesCreated = sm.makeTileToTheRight(t) || wereTilesCreated
+			wereTilesCreated = sm.makeTileBelow(t) || wereTilesCreated
+
 			// increase alpha channel (for fade in, if needed)
 			if (*t).alpha < 1 {
 				(*t).alpha = (*t).alpha + TILE_FADEIN_ALPHA_PER_TICK
@@ -145,29 +153,29 @@ func (sm *SlippyMap) Update(forceUpdate bool) {
 			}
 		}
 
-		// new tiles created if required (just do one tile per update)
-		makeAnother := true
-		for makeAnother {
-			makeAnother = false
-			for _, t := range sm.tiles {
-				if sm.makeTileAbove(t) {
-					makeAnother = true
-					wereTilesCreated = true
-				}
-				if sm.makeTileToTheLeft(t) {
-					makeAnother = true
-					wereTilesCreated = true
-				}
-				if sm.makeTileToTheRight(t) {
-					makeAnother = true
-					wereTilesCreated = true
-				}
-				if sm.makeTileBelow(t) {
-					makeAnother = true
-					wereTilesCreated = true
-				}
-			}
-		}
+		// // new tiles created if required (just do one tile per update)
+		// makeAnother := true
+		// for makeAnother {
+		// 	makeAnother = false
+		// 	for _, t := range sm.tiles {
+		// 		if sm.makeTileAbove(t) {
+		// 			makeAnother = true
+		// 			wereTilesCreated = true
+		// 		}
+		// 		if sm.makeTileToTheLeft(t) {
+		// 			makeAnother = true
+		// 			wereTilesCreated = true
+		// 		}
+		// 		if sm.makeTileToTheRight(t) {
+		// 			makeAnother = true
+		// 			wereTilesCreated = true
+		// 		}
+		// 		if sm.makeTileBelow(t) {
+		// 			makeAnother = true
+		// 			wereTilesCreated = true
+		// 		}
+		// 	}
+		// }
 	}
 
 	// work out whether this function needs to run next iteration
