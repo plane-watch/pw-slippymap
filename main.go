@@ -194,28 +194,39 @@ func (g *Game) Draw(screen *ebiten.Image) {
 
 	// draw aircraft (TESTING)
 	m := markerImages["A388"]
-	do := m.MarkerDrawOpts(dbgMarkerRotateAngle, 200, 5)
+	do := m.MarkerDrawOpts(dbgMarkerRotateAngle, 203, 5)
 	screen.DrawImage(m.Img, &do)
+	ebitenutil.DebugPrintAt(screen, "A388", 203, 40)
 
 	m = markerImages["F100"]
 	do = m.MarkerDrawOpts(dbgMarkerRotateAngle, 257, 5)
 	screen.DrawImage(m.Img, &do)
+	ebitenutil.DebugPrintAt(screen, "F100", 257, 40)
 
 	m = markerImages["PC12"]
 	do = m.MarkerDrawOpts(dbgMarkerRotateAngle, 300, 5)
 	screen.DrawImage(m.Img, &do)
+	ebitenutil.DebugPrintAt(screen, "PC12", 300, 40)
 
 	m = markerImages["SF34"]
 	do = m.MarkerDrawOpts(dbgMarkerRotateAngle, 350, 5)
 	screen.DrawImage(m.Img, &do)
+	ebitenutil.DebugPrintAt(screen, "SF34", 350, 40)
 
 	m = markerImages["E190"]
 	do = m.MarkerDrawOpts(dbgMarkerRotateAngle, 400, 5)
 	screen.DrawImage(m.Img, &do)
+	ebitenutil.DebugPrintAt(screen, "E190", 400, 40)
 
 	m = markerImages["DH8D"]
 	do = m.MarkerDrawOpts(dbgMarkerRotateAngle, 450, 5)
 	screen.DrawImage(m.Img, &do)
+	ebitenutil.DebugPrintAt(screen, "DH8D", 450, 40)
+
+	m = markerImages["A320"]
+	do = m.MarkerDrawOpts(dbgMarkerRotateAngle, 500, 5)
+	screen.DrawImage(m.Img, &do)
+	ebitenutil.DebugPrintAt(screen, "A320", 500, 40)
 
 }
 
