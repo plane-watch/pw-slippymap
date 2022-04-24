@@ -18,21 +18,23 @@ const (
 	ZOOM_LEVEL_MAX             = 16   // maximum zoom level
 	ZOOM_LEVEL_MIN             = 2    // minimum zoom level
 	TILE_FADEIN_ALPHA_PER_TICK = 0.05 // amount of alpha added per tick for tile fade-in
+
+	DIRECTION_NORTH = 1
+	DIRECTION_SOUTH = 2
+	DIRECTION_WEST  = 3
+	DIRECTION_EAST  = 4
 )
-
-type OSMTileID struct {
-
-	// OpenStreetMap tile x/y/zoom
-	x    int // OSM X
-	y    int // OSM Y
-	zoom int // OSM Zoom Level
-
-}
 
 type MapTile struct {
 
 	// OpenStreetMap tile identifier
 	osm OSMTileID
+
+	// Information of surrounding tiles
+	osmNeighbourTileNorth OSMTileID
+	osmNeighbourTileSouth OSMTileID
+	osmNeighbourTileWest  OSMTileID
+	osmNeighbourTileEast  OSMTileID
 
 	// Tile image
 	img      *ebiten.Image // Image data
@@ -45,11 +47,6 @@ type MapTile struct {
 	// Alpha for smooth fade-in
 	alpha float64 // tile transparency (for fade-in)
 
-	// Information of surrounding tiles
-	neighbourTileNorth int
-	neighbourTileSouth int
-	neighbourTileWest  int
-	neighbourTileEast  int
 }
 
 type SlippyMap struct {
@@ -152,11 +149,11 @@ func (sm *SlippyMap) Update(forceUpdate bool) {
 		for i, t := range sm.tiles {
 
 			// new tiles created if required
-			// note: if defer is used, the wrong artwork bug seems more prevalent
-			wereTilesCreated = sm.makeTileAbove(t) || wereTilesCreated
-			wereTilesCreated = sm.makeTileToTheLeft(t) || wereTilesCreated
-			wereTilesCreated = sm.makeTileToTheRight(t) || wereTilesCreated
-			wereTilesCreated = sm.makeTileBelow(t) || wereTilesCreated
+			// note: if defer is used, the wrong artwork bug seems more prevalent? maybe coincidence...
+			wereTilesCreated = sm.makeNeighbourTile(DIRECTION_NORTH, t) || wereTilesCreated
+			wereTilesCreated = sm.makeNeighbourTile(DIRECTION_SOUTH, t) || wereTilesCreated
+			wereTilesCreated = sm.makeNeighbourTile(DIRECTION_EAST, t) || wereTilesCreated
+			wereTilesCreated = sm.makeNeighbourTile(DIRECTION_WEST, t) || wereTilesCreated
 
 			// increase alpha channel (for fade in, if needed)
 			if (*t).alpha < 1 {
@@ -173,30 +170,6 @@ func (sm *SlippyMap) Update(forceUpdate bool) {
 				break
 			}
 		}
-
-		// // new tiles created if required (just do one tile per update)
-		// makeAnother := true
-		// for makeAnother {
-		// 	makeAnother = false
-		// 	for _, t := range sm.tiles {
-		// 		if sm.makeTileAbove(t) {
-		// 			makeAnother = true
-		// 			wereTilesCreated = true
-		// 		}
-		// 		if sm.makeTileToTheLeft(t) {
-		// 			makeAnother = true
-		// 			wereTilesCreated = true
-		// 		}
-		// 		if sm.makeTileToTheRight(t) {
-		// 			makeAnother = true
-		// 			wereTilesCreated = true
-		// 		}
-		// 		if sm.makeTileBelow(t) {
-		// 			makeAnother = true
-		// 			wereTilesCreated = true
-		// 		}
-		// 	}
-		// }
 	}
 
 	// work out whether this function needs to run next iteration
@@ -208,119 +181,59 @@ func (sm *SlippyMap) Update(forceUpdate bool) {
 
 }
 
-func (sm *SlippyMap) makeTileAbove(existingTile *MapTile) (tileCreated bool) {
-	// makes the tile above existingTile, if it does not already exist or would be out of bounds
+func (sm *SlippyMap) makeNeighbourTile(direction int, existingTile *MapTile) (tileCreated bool) {
+	// makes the tile to direction of existingTile, if it does not already exist or would be out of bounds
 
-	// check to see if tile above already exists
-	newTileOSMY := (*existingTile).osm.y - 1
+	newTileOffsetX := (*existingTile).offsetX
+	newTileOffsetY := (*existingTile).offsetY
 
-	// honour edges of map
-	if newTileOSMY == -1 {
-		return false
+	var newTileOsm OSMTileID
+
+	switch direction {
+	case DIRECTION_NORTH:
+		newTileOsm = (*existingTile).osmNeighbourTileNorth
+		if newTileOsm.y >= existingTile.osm.y {
+			return false
+		}
+		newTileOffsetY = (*existingTile).offsetY - TILE_HEIGHT_PX
+	case DIRECTION_SOUTH:
+		newTileOsm = (*existingTile).osmNeighbourTileSouth
+		if newTileOsm.y <= existingTile.osm.y {
+			return false
+		}
+		newTileOffsetY = (*existingTile).offsetY + TILE_HEIGHT_PX
+	case DIRECTION_WEST:
+		newTileOsm = (*existingTile).osmNeighbourTileWest
+		if newTileOsm.x >= existingTile.osm.x {
+			return false
+		}
+		newTileOffsetX = (*existingTile).offsetX - TILE_WIDTH_PX
+	case DIRECTION_EAST:
+		newTileOsm = (*existingTile).osmNeighbourTileEast
+		if newTileOsm.x <= existingTile.osm.x {
+			return false
+		}
+		newTileOffsetX = (*existingTile).offsetX + TILE_WIDTH_PX
+	default:
+		log.Fatalf("Invalid direction: %d", direction)
 	}
 
+	// check if tile already exists
 	for _, t := range sm.tiles {
-		if (*t).osm.y == newTileOSMY && (*t).osm.x == (*existingTile).osm.x {
+		if (*t).osm == newTileOsm {
 			// the tile already exists, bail out
 			return false
 		}
 	}
 
-	newTileOffsetY := (*existingTile).offsetY - TILE_HEIGHT_PX
-
 	// if the tile would not be out of bounds...
-	if sm.isOutOfBounds((*existingTile).offsetX, newTileOffsetY) != true {
+	if sm.isOutOfBounds(newTileOffsetX, newTileOffsetY) != true {
 		// make the new tile
-		sm.makeTile((*existingTile).osm.x, newTileOSMY, (*existingTile).offsetX, newTileOffsetY)
+		sm.makeTile(newTileOsm.x, newTileOsm.y, newTileOffsetX, newTileOffsetY)
 		return true
 	}
-	return false
-}
 
-func (sm *SlippyMap) makeTileBelow(existingTile *MapTile) (tileCreated bool) {
-	// makes the tile below existingTile, if it does not already exist or would be out of bounds
-
-	// check to see if tile below already exists
-	newTileOSMY := (*existingTile).osm.y + 1
-
-	// honour edges of map
-	if newTileOSMY == int(math.Pow(2, float64(sm.zoomLevel))) {
-		return false
-	}
-
-	for _, t := range sm.tiles {
-		if t.osm.y == newTileOSMY && t.osm.x == (*existingTile).osm.x {
-			// the tile already exists, bail out
-			return false
-		}
-	}
-
-	newTileOffsetY := (*existingTile).offsetY + TILE_HEIGHT_PX
-
-	// if the tile would not be out of bounds...
-	if sm.isOutOfBounds((*existingTile).offsetX, newTileOffsetY) != true {
-		// make the new tile
-		sm.makeTile((*existingTile).osm.x, newTileOSMY, (*existingTile).offsetX, newTileOffsetY)
-		return true
-	}
-	return false
-}
-
-func (sm *SlippyMap) makeTileToTheLeft(existingTile *MapTile) (tileCreated bool) {
-	// makes the tile to the left of existingTile, if it does not already exist or would be out of bounds
-
-	// check to see if tile to the left already exists
-	newTileOSMX := (*existingTile).osm.x - 1
-
-	// honour edges of map
-	if newTileOSMX == -1 {
-		return false
-	}
-
-	for _, t := range sm.tiles {
-		if t.osm.x == newTileOSMX && t.osm.y == (*existingTile).osm.y {
-			// the tile already exists, bail out
-			return false
-		}
-	}
-
-	newTileOffsetX := (*existingTile).offsetX - TILE_WIDTH_PX
-
-	// if the tile would not be out of bounds...
-	if sm.isOutOfBounds(newTileOffsetX, (*existingTile).offsetY) != true {
-		// make the new tile
-		sm.makeTile(newTileOSMX, (*existingTile).osm.y, newTileOffsetX, (*existingTile).offsetY)
-		return true
-	}
-	return false
-}
-
-func (sm *SlippyMap) makeTileToTheRight(existingTile *MapTile) (tileCreated bool) {
-	// makes the tile to the right of existingTile, if it does not already exist or would be out of bounds
-
-	// check to see if tile to the right already exists
-	newTileOSMX := (*existingTile).osm.x + 1
-
-	// honour edges of map
-	if newTileOSMX == int(math.Pow(2, float64(sm.zoomLevel))) {
-		return false
-	}
-
-	for _, t := range sm.tiles {
-		if t.osm.x == newTileOSMX && t.osm.y == (*existingTile).osm.y {
-			// the tile already exists, bail out
-			return false
-		}
-	}
-
-	newTileOffsetX := (*existingTile).offsetX + TILE_WIDTH_PX
-
-	// if the tile would not be out of bounds...
-	if sm.isOutOfBounds(newTileOffsetX, (*existingTile).offsetY) != true {
-		// make the new tile
-		sm.makeTile(newTileOSMX, (*existingTile).osm.y, newTileOffsetX, (*existingTile).offsetY)
-		return true
-	}
+	// tile was out of bounds
 	return false
 }
 
@@ -355,10 +268,20 @@ func (sm *SlippyMap) makeTile(osmX, osmY, offsetX, offsetY int) {
 
 	// Create the tile object
 	t := MapTile{
-		osm:     osm,
+
+		// OpenStreetMap Tile Info
+		osm:                   osm,
+		osmNeighbourTileNorth: osm.GetNeighbour(DIRECTION_NORTH),
+		osmNeighbourTileSouth: osm.GetNeighbour(DIRECTION_SOUTH),
+		osmNeighbourTileWest:  osm.GetNeighbour(DIRECTION_WEST),
+		osmNeighbourTileEast:  osm.GetNeighbour(DIRECTION_EAST),
+
+		// Location on map
 		offsetX: offsetX,
 		offsetY: offsetY,
-		img:     ebiten.NewImage(TILE_WIDTH_PX, TILE_WIDTH_PX),
+
+		// Prepare image
+		img: ebiten.NewImage(TILE_WIDTH_PX, TILE_WIDTH_PX),
 	}
 
 	go func() {
