@@ -13,7 +13,11 @@ A [Slippy Map](https://wiki.openstreetmap.org/wiki/Slippy_Map) written in Go, ru
 ## Future
 
 * Get planes on map
+  * Read readsb-protobuf aircraft.pb from URL every *n* seconds
+  * Read positions from message bus
 * Draw paths and stuff (polyline) on map
+* Add scale (ref: <https://wiki.openstreetmap.org/wiki/Slippy_map_tilenames#Resolution_and_Scale>)
+* Add UI buttons for zoom, paths, labels etc
 
 ## Running locally
 
