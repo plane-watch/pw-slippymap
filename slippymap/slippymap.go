@@ -115,6 +115,7 @@ func (sm *SlippyMap) Draw(screen *ebiten.Image) {
 }
 
 func (sm *SlippyMap) MoveBy(deltaOffsetX, deltaOffsetY int) {
+	// moves the map by deltaOffsetX, deltaOffsetY pixels relative to current view
 	// tile reposition & alpha increase if needed
 	for _, t := range sm.tiles {
 		// update offset if required (ie, user is dragging the map around)
@@ -132,7 +133,6 @@ func (sm *SlippyMap) Update(forceUpdate bool) {
 	// Updates the map
 	//  - Loads any missing tiles
 	//  - Cleans up any tiles that are "out of bounds"
-	//  - Moves tiles as-per deltaOffsetX/Y
 
 	var wereTilesCleanedUp bool // were off screen tiles cleaned up?
 	var wereTilesAlphad bool    // did tiles have their alpha changed?
@@ -258,7 +258,7 @@ func (sm *SlippyMap) isOutOfBounds(pixelX, pixelY int) (outOfBounds bool) {
 }
 
 func (sm *SlippyMap) makeTile(osmX, osmY, offsetX, offsetY int) {
-	// Creates a new tile on the slippymap
+	// Creates a new tile on the slippymap sm at offxetX and offsetY
 
 	osm := OSMTileID{
 		x:    osmX,
