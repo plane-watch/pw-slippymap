@@ -12,7 +12,7 @@ import (
 
 // TileProvider generates URLs (either https:// or file://) to the tile for the coord
 type TileProvider interface {
-	GetTileAddress(x, y, z int) (tilePath string, err error)
+	GetTileAddress(osm OSMTileID) (tilePath string, err error)
 }
 
 func NewCachedTileProvider(tileCachePath string, tileProvider TileProvider) *CachedTileProvider {
@@ -33,7 +33,7 @@ type CachedTileProvider struct {
 	tileCachePath string
 }
 
-func (ctp *CachedTileProvider) GetTileAddress(x, y, z int) (tilePath string, err error) {
+func (ctp *CachedTileProvider) GetTileAddress(osm OSMTileID) (tilePath string, err error) {
 	// if the tile at URL is not already cached, download it
 	// return the local path to the tile in cache
 
@@ -42,7 +42,7 @@ func (ctp *CachedTileProvider) GetTileAddress(x, y, z int) (tilePath string, err
 	// This is bare minimum to get functionality working
 
 	// determine tile filename
-	tileFile := fmt.Sprintf("%d_%d_%d.png", x, y, z)
+	tileFile := fmt.Sprintf("%d_%d_%d.png", osm.x, osm.y, osm.zoom)
 
 	// determine full path to tile file
 	tilePath = path.Join(ctp.tileCachePath, tileFile)
@@ -52,7 +52,7 @@ func (ctp *CachedTileProvider) GetTileAddress(x, y, z int) (tilePath string, err
 		// tile does not exist in cache
 
 		// determine OSM url
-		url, err := ctp.tileProvider.GetTileAddress(x, y, z)
+		url, err := ctp.tileProvider.GetTileAddress(osm)
 		if err != nil {
 			return "", err
 		}

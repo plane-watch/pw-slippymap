@@ -14,7 +14,7 @@ type OSMTileProvider struct {
 
 var _ TileProvider = &OSMTileProvider{}
 
-func (op *OSMTileProvider) GetTileAddress(x, y, z int) (tilePath string, err error) {
+func (op *OSMTileProvider) GetTileAddress(osm OSMTileID) (tilePath string, err error) {
 	var url string
 	// returns URL to open street map tile
 	// load balance urls across servers as-per OSM guidelines: https://wiki.openstreetmap.org/wiki/Slippy_map_tilenames#Tile_servers
@@ -26,13 +26,13 @@ func (op *OSMTileProvider) GetTileAddress(x, y, z int) (tilePath string, err err
 
 	switch nextCDN {
 	case 0:
-		url = fmt.Sprintf("http://a.tile.openstreetmap.org/%d/%d/%d.png", z, x, y)
+		url = fmt.Sprintf("http://a.tile.openstreetmap.org/%d/%d/%d.png", osm.zoom, osm.x, osm.y)
 
 	case 1:
-		url = fmt.Sprintf("http://b.tile.openstreetmap.org/%d/%d/%d.png", z, x, y)
+		url = fmt.Sprintf("http://b.tile.openstreetmap.org/%d/%d/%d.png", osm.zoom, osm.x, osm.y)
 
 	case 2:
-		url = fmt.Sprintf("http://c.tile.openstreetmap.org/%d/%d/%d.png", z, x, y)
+		url = fmt.Sprintf("http://c.tile.openstreetmap.org/%d/%d/%d.png", osm.zoom, osm.x, osm.y)
 
 	default:
 		return "", errors.New("invalid osm_url_prefix")

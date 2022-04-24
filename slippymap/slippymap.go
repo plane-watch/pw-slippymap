@@ -363,7 +363,7 @@ func (sm *SlippyMap) makeTile(osmX, osmY, offsetX, offsetY int) {
 
 	go func() {
 		// get tile artwork
-		tilePath, err := sm.tileProvider.GetTileAddress(t.osm.x, t.osm.y, t.osm.zoom)
+		tilePath, err := sm.tileProvider.GetTileAddress(t.osm)
 		if err != nil {
 			log.Fatal(err)
 		}

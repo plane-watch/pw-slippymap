@@ -36,7 +36,12 @@ func TestNewCachedTileProvider(t *testing.T) {
 		ctp = NewCachedTileProvider(dir, &OSMTileProvider{})
 
 		// request a tile
-		tilePath, err = ctp.GetTileAddress(1, 2, 3)
+		osm := OSMTileID{
+			x:    1,
+			y:    2,
+			zoom: 3,
+		}
+		tilePath, err = ctp.GetTileAddress(osm)
 		require.NoError(t, err, "Error returned from GetTileAddress")
 
 		// check for success
@@ -49,14 +54,19 @@ func TestNewCachedTileProvider(t *testing.T) {
 		ctp = NewCachedTileProvider(dir, &FaultyTileProvider{})
 
 		// request a tile (should return error)
-		tilePath, err = ctp.GetTileAddress(2, 3, 4)
+		osm := OSMTileID{
+			x:    2,
+			y:    3,
+			zoom: 4,
+		}
+		tilePath, err = ctp.GetTileAddress(osm)
 		require.Error(t, err)
 	})
 }
 
 type FaultyTileProvider struct{}
 
-func (FaultyTileProvider) GetTileAddress(int, int, int) (string, error) {
+func (FaultyTileProvider) GetTileAddress(OSMTileID) (string, error) {
 	// fake an error
 	return "", errors.New("oh no an error")
 }
