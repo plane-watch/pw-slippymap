@@ -1,12 +1,13 @@
-package main
+package slippymap
 
 import (
 	"fmt"
 	"image/color"
 	"log"
-	"pw_slippymap/markers"
-	"pw_slippymap/slippymap"
-	"pw_slippymap/userinput"
+
+	"github.com/plane-watch/pw-slippymap/markers"
+	"github.com/plane-watch/pw-slippymap/slippymap"
+	"github.com/plane-watch/pw-slippymap/userinput"
 
 	"github.com/hajimehoshi/ebiten/v2"
 	"github.com/hajimehoshi/ebiten/v2/ebitenutil"
@@ -39,7 +40,7 @@ var (
 	dbgMarkerRotateAngle float64
 )
 
-type Game struct {
+type game struct {
 
 	// graphics
 	slippymap *slippymap.SlippyMap // hold the slippymap within the "game" object
@@ -49,7 +50,7 @@ type Game struct {
 	strokes  map[*userinput.Stroke]struct{}
 }
 
-func (g *Game) updateStroke(stroke *userinput.Stroke) {
+func (g *game) updateStroke(stroke *userinput.Stroke) {
 	stroke.Update()
 	if !stroke.IsReleased() {
 		return
@@ -57,7 +58,7 @@ func (g *Game) updateStroke(stroke *userinput.Stroke) {
 
 }
 
-func (g *Game) Update() error {
+func (g *game) Update() error {
 
 	// temporarily commented out lots of stuff just to play with SVG artwork.
 
@@ -134,7 +135,7 @@ func (g *Game) Update() error {
 	return nil
 }
 
-func (g *Game) Draw(screen *ebiten.Image) {
+func (g *game) Draw(screen *ebiten.Image) {
 
 	// temporarily commented out lots of stuff just to play with SVG artwork.
 
@@ -235,7 +236,9 @@ func (g *Game) Draw(screen *ebiten.Image) {
 
 }
 
-func (g *Game) Layout(outsideWidth, outsideHeight int) (screenWidth, screenHeight int) {
+func (g *game) Layout(outsideWidth, outsideHeight int) (int, int) {
+
+	//fmt.Printf("Layout: %d: %d\n", outsideWidth, outsideHeight)
 
 	// set slippymap size if window size changed
 	smW, smH := g.slippymap.GetSize()
@@ -252,6 +255,8 @@ func (g *Game) Layout(outsideWidth, outsideHeight int) (screenWidth, screenHeigh
 	return ew, eh
 }
 
+var _ ebiten.Game = &game{}
+
 func failFatally(err error) {
 	// handle errors by failing
 	if err != nil {
@@ -259,25 +264,23 @@ func failFatally(err error) {
 	}
 }
 
-func main() {
-
-	var err error
-
-	log.Print("Started")
-
+func GetGame() (*game, error) {
 	// load sprites
+	var err error
+	// markerImages is global
 	markerImages, err = markers.InitMarkers()
 	failFatally(err)
 
 	// determine starting window size
 	// 80% of fullscreen
-	screenWidth, screenHeight := ebiten.ScreenSizeInFullscreen()
-	windowWidth = int(float64(screenWidth) * INIT_WINDOW_SIZE)
-	windowHeight = int(float64(screenHeight) * INIT_WINDOW_SIZE)
+	//	screenWidth, screenHeight := ebiten.WindowSize()
+
+	windowWidth = 451  // int(float64(screenWidth) * INIT_WINDOW_SIZE)
+	windowHeight = 764 //int(float64(screenHeight) * INIT_WINDOW_SIZE)
 
 	// set up initial window
-	ebiten.SetWindowResizable(true)
-	ebiten.SetWindowSize(windowWidth, windowHeight)
+	//ebiten.SetWindowResizable(true)
+	//ebiten.SetWindowSize(windowWidth, windowHeight)
 	ebiten.SetWindowTitle("plane.watch")
 
 	tileProvider, err := slippymap.TileProviderForOS()
@@ -289,7 +292,7 @@ func main() {
 	sm := slippymap.NewSlippyMap(windowWidth, windowHeight, INIT_ZOOM_LEVEL, INIT_CENTRE_LAT, INIT_CENTRE_LONG, tileProvider)
 
 	// prepare "game"
-	g := &Game{
+	g := &game{
 		slippymap: &sm,
 		strokes:   map[*userinput.Stroke]struct{}{},
 	}
@@ -300,6 +303,17 @@ func main() {
 	// ebiten.ScheduleFrame is called within SlippyMap.Update()
 	// Should we make .Update() return a boolean that determines whether we schedule a frame in this packages Draw() function?
 	ebiten.SetFPSMode(ebiten.FPSModeVsyncOffMinimum)
+	return g, err
+}
+
+func Main() {
+
+	g, err := GetGame()
+	if err != nil {
+		log.Fatalf("could not init game: %s", err)
+	}
+
+	log.Print("Started")
 
 	// run
 	defer endProgram()

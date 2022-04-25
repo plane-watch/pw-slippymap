@@ -2,8 +2,9 @@ package markers
 
 import (
 	"log"
-	"pw_slippymap/slippymap"
 	"sync"
+
+	"github.com/plane-watch/pw-slippymap/slippymap"
 
 	"github.com/hajimehoshi/ebiten/v2"
 )

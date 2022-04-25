@@ -4,19 +4,22 @@ import (
 	"log"
 	"os"
 	"path"
-	"pw_slippymap/localdata"
 	"runtime"
+
+	"github.com/plane-watch/pw-slippymap/localdata"
 )
 
 // If we are running in WASM/JS, then the browser does all relevant tile caching for us.
 // If running in desktop app mode, we need to cache the tiles ourselves
 func TileProviderForOS() (TileProvider, error) {
-	if runtime.GOOS == "js" {
+	if runtime.GOOS == "js" || runtime.GOOS == "android" {
 		return &OSMTileProvider{}, nil
 	}
 
 	// try to get user home dir (for map cache)
-	userHomeDir, err := os.UserHomeDir()
+	//userHomeDir, err := os.UserHomeDir()
+	// FOr android this needs to be a folder that we have permission to write to.
+	userHomeDir, err := os.MkdirTemp(os.TempDir(), "plane.watch")
 	if err != nil {
 		log.Fatal(err)
 	}

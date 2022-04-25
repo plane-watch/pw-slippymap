@@ -10,6 +10,7 @@ import (
 
 	"github.com/hajimehoshi/ebiten/v2"
 	"github.com/hajimehoshi/ebiten/v2/ebitenutil"
+	"github.com/plane-watch/pw-slippymap/slippymap/filecrap"
 )
 
 const (
@@ -292,9 +293,9 @@ func (sm *SlippyMap) makeTile(osmX, osmY, offsetX, offsetY int) {
 		}
 
 		// load the image
-		img, _, err := ebitenutil.NewImageFromFile(tilePath)
+		img, _, err := filecrap.NewImageFromURL(tilePath)
 		if err != nil {
-			log.Fatal(err)
+			log.Fatal("oh no", err)
 		}
 		t.imgMutex.Lock()
 		t.img.DrawImage(img, nil)
