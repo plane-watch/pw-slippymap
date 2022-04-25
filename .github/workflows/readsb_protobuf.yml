@@ -22,12 +22,10 @@ jobs:
     - name: Fetch latest readsb.proto
       run: |
         set -x
-        pushd ./datasources
-        curl -o ./readsb.proto https://raw.githubusercontent.com/Mictronics/readsb-protobuf/dev/readsb.proto
-        popd
+        curl -o ./datasources/readsb.proto https://raw.githubusercontent.com/Mictronics/readsb-protobuf/dev/readsb.proto
     
     - name: Compile readsb.proto into golang
       run: |
         set -x
-        protoc -I=. --go_out=. ./readsb.proto
+        protoc -I=./datasources/ --go_out=./datasources/ readsb.proto
     
