@@ -20,7 +20,8 @@ jobs:
       run: |
         sudo apt-get update
         sudo apt-get install --no-install-recommends -y libprotobuf-dev protobuf-compiler
-        sudo go install google.golang.org/protobuf/cmd/protoc-gen-go@latest
+        go install -v google.golang.org/protobuf/cmd/protoc-gen-go@latest
+        go install -v google.golang.org/grpc/cmd/protoc-gen-go-grpc@latest
 
     - name: Fetch latest readsb.proto
       run: |
@@ -30,7 +31,6 @@ jobs:
     - name: Compile readsb.proto into golang
       run: |
         set -x
-        find / -type f -iname protoc-gen-go
-        export PATH=$PATH:/home/runner/go/bin
+        export PATH="$PATH:$(go env GOPATH)/bin"
         protoc -I=./datasources/ --go_out=./datasources/ readsb.proto
     
