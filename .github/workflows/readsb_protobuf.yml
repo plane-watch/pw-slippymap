@@ -30,7 +30,7 @@ jobs:
     - name: Compile readsb.proto into golang
       run: |
         set -x
-        find /home/runner -iname protoc-gen-go
+        find / -type f -iname protoc-gen-go
         export PATH=$PATH:/home/runner/go/bin
         protoc -I=./datasources/ --go_out=./datasources/ readsb.proto
     
