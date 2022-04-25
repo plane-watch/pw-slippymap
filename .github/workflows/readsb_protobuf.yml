@@ -1,4 +1,5 @@
 ---
+name: Refresh readsb.proto 
 
 on:
   workflow_dispatch:
