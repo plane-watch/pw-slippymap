@@ -34,4 +34,5 @@ jobs:
         export PATH="$PATH:$(go env GOPATH)/bin"
         protoc -I=./datasources/ --go_out=./datasources/ --go_opt=Mreadsb.proto="pw_slippymap/datasources" readsb.proto
         ls -la  ./datasources/
+        cat -n ./datasources/readsb_protobug.go
     
