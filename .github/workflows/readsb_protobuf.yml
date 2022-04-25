@@ -30,5 +30,6 @@ jobs:
     - name: Compile readsb.proto into golang
       run: |
         set -x
+        export PATH=$PATH:/home/runner/go/bin
         protoc -I=./datasources/ --go_out=./datasources/ readsb.proto
     
