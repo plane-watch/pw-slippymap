@@ -34,4 +34,12 @@ jobs:
         export PATH="$PATH:$(go env GOPATH)/bin"
         protoc -I=./datasources/ --go_out=./datasources/ --go_opt=Mreadsb.proto="./" readsb.proto
         find . -type f
-    
+
+    - name: Add and commit
+      uses: actions/checkout@v3
+      run: |
+        git config user.name github-actions
+        git config user.email github-actions@github.com
+        git add ./datasources/readsb.pb.go
+        git commit -m "update of compiled readsb.proto"
+        git push
