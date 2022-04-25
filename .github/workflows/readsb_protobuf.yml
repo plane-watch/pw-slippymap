@@ -1,0 +1,32 @@
+---
+
+on:
+  workflow_dispatch:
+
+jobs:
+
+  readsb-protobuf:
+    name: Generate go from readsb.proto
+    runs-on: ubuntu-latest
+    steps:
+
+    - name: Install Go
+      uses: actions/setup-go@v3
+
+    - uses: actions/checkout@v3
+
+    - name: Install protoc
+      uses: arduino/setup-protoc@v1
+
+    - name: Fetch latest readsb.proto
+      run: |
+        set -x
+        pushd ./datasources
+        curl -o ./readsb.proto https://raw.githubusercontent.com/Mictronics/readsb-protobuf/dev/readsb.proto
+        popd
+    
+    - name: Compile readsb.proto into golang
+      run: |
+        set -x
+        protoc -I=. --go_out=. ./readsb.proto
+    
