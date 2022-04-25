@@ -32,7 +32,7 @@ jobs:
       run: |
         set -x
         export PATH="$PATH:$(go env GOPATH)/bin"
-        protoc -I=./datasources/readsb_protobuf/ --go_opt=Mreadsb.proto="./;readsb_protobuf" readsb.proto
+        protoc -I./datasources/readsb_protobuf/ --go_opt=Mreadsb.proto="./;readsb_protobuf" readsb.proto
         find . -type f
 
     - name: Add and commit
