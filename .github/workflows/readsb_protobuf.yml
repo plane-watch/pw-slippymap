@@ -26,8 +26,7 @@ jobs:
     - name: Fetch latest readsb.proto
       run: |
         set -x
-        echo 'option go_package = "pw_slippymap/datasources";' > ./datasources/readsb.proto
-        curl https://raw.githubusercontent.com/Mictronics/readsb-protobuf/dev/readsb.proto >> ./datasources/readsb.proto
+        curl -o ./datasources/readsb.proto https://raw.githubusercontent.com/Mictronics/readsb-protobuf/dev/readsb.proto
     
     - name: Compile readsb.proto into golang
       run: |
