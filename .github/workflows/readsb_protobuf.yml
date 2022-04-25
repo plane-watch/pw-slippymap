@@ -26,19 +26,19 @@ jobs:
     - name: Fetch latest readsb.proto
       run: |
         set -x
-        curl -o ./protobuf/readsb.proto https://raw.githubusercontent.com/Mictronics/readsb-protobuf/dev/readsb.proto
+        curl -o ./datasources/readsb_protobuf/readsb.proto https://raw.githubusercontent.com/Mictronics/readsb-protobuf/dev/readsb.proto
     
     - name: Compile readsb.proto into golang
       run: |
         set -x
         export PATH="$PATH:$(go env GOPATH)/bin"
-        protoc -I=./protobuf/ --go_out=./protobuf/ --go_opt=Mreadsb.proto="./;readsb_protobuf" readsb.proto
+        protoc -I=./datasources/readsb_protobuf/ --go_opt=Mreadsb.proto="./;readsb_protobuf" readsb.proto
         find . -type f
 
     - name: Add and commit
       run: |
         git config user.name github-actions
         git config user.email github-actions@github.com
-        git add ./protobuf/readsb.pb.go
+        git add ./datasources/readsb_protobuf/readsb.pb.go
         git commit -m "update of compiled readsb.proto"
         git push
