@@ -16,8 +16,10 @@ jobs:
 
     - uses: actions/checkout@v3
 
-    - name: Install protoc
-      uses: arduino/setup-protoc@v1
+    - name: Install prerequisites
+      run: |
+        apt-get update
+        apt-get install --no-install-recommends -y protoc-gen-go libprotobuf-dev protobuf-compiler
 
     - name: Fetch latest readsb.proto
       run: |
