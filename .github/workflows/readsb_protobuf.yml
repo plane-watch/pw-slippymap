@@ -33,5 +33,5 @@ jobs:
       run: |
         set -x
         export PATH="$PATH:$(go env GOPATH)/bin"
-        protoc -I=./datasources/ --go_out=./datasources/--go_opt=Mreadsb.proto="pw_slippymap/datasources" readsb.proto
+        protoc -I=./datasources/ --go_out=./datasources/ --go_opt=Mreadsb.proto="pw_slippymap/datasources" readsb.proto
     
