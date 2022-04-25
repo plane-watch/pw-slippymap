@@ -19,7 +19,8 @@ jobs:
     - name: Install prerequisites
       run: |
         sudo apt-get update
-        sudo apt-get install --no-install-recommends -y protoc-gen-go libprotobuf-dev protobuf-compiler
+        sudo apt-get install --no-install-recommends -y libprotobuf-dev protobuf-compiler
+        sudo go install google.golang.org/protobuf/cmd/protoc-gen-go@latest
 
     - name: Fetch latest readsb.proto
       run: |
