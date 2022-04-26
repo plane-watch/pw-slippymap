@@ -24,7 +24,7 @@ jobs:
         set -x
         curl -o ./datasources/readsb_json/dbversion.json https://raw.githubusercontent.com/Mictronics/readsb-protobuf/dev/webapp/src/db/dbversion.json
         git add ./datasources/readsb_json/dbversion.json
-        CHANGES=$(git diff ./datasources/readsb_json/dbversion.json)
+        CHANGES=$(git diff origin/main)
         if [[ -n "$CHANGES" ]]; then
           echo "::set-output name=add_and_commit::true"
         fi        

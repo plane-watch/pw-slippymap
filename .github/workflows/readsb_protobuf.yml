@@ -32,20 +32,19 @@ jobs:
       run: |
         set -x
         curl -o ./datasources/readsb_protobuf/readsb.proto https://raw.githubusercontent.com/Mictronics/readsb-protobuf/dev/readsb.proto
-        git add ./datasources/readsb_protobuf/readsb.proto
     
     - name: Compile readsb.proto into golang
       run: |
         set -x
         export PATH="$PATH:$(go env GOPATH)/bin"
         protoc -I=./datasources/readsb_protobuf/ --go_out=./datasources/readsb_protobuf/ --go_opt=Mreadsb.proto="./;readsb_protobuf" readsb.proto
-        find . -type f
+        git add ./datasources/readsb_protobuf/readsb.pb.go
 
     - name: Check for changes
       id: check-changes
       run: |
         set -x
-        CHANGES=$(git diff ./datasources/readsb_protobuf/readsb.pb.go)
+        CHANGES=$(git diff origin/main)
         if [[ -n "$CHANGES" ]]; then
           echo "::set-output name=add_and_commit::true"
         fi 
@@ -55,6 +54,5 @@ jobs:
       run: |
         git config user.name github-actions
         git config user.email github-actions@github.com
-        git add ./datasources/readsb_protobuf/readsb.pb.go
         git commit -m "update of compiled readsb.proto"
         git push
