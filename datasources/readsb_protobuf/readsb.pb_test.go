@@ -1040,6 +1040,7 @@ func TestReadsbProtobuf(t *testing.T) {
 
 	m := &AircraftsUpdate{}
 	err = proto.Unmarshal(pbData, m)
+	require.NoError(t, err)
 
 	for _, a := range m.GetAircraft() {
 
