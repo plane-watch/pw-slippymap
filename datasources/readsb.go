@@ -56,11 +56,11 @@ func ReadsbProtobuf(url string, adb *AircraftDB) {
 		// Update aircraft DB
 		for _, a := range aircraftUpdate.GetAircraft() {
 			icao := int(a.GetAddr())
-			adb.UpdateCallsign(icao, a.GetFlight())
-			adb.UpdateLat(icao, a.GetLat())
-			adb.UpdateLong(icao, a.GetLon())
-			adb.UpdateTrack(icao, int(a.GetTrack()))
-			adb.UpdateLastSeen(icao)
+			adb.SetCallsign(icao, a.GetFlight())
+			adb.SetLat(icao, a.GetLat())
+			adb.SetLong(icao, a.GetLon())
+			adb.SetTrack(icao, int(a.GetTrack()))
+			adb.SetLastSeen(icao)
 		}
 
 		// Wait until next update

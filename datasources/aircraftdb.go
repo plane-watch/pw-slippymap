@@ -7,6 +7,8 @@ import (
 	"log"
 	"sync"
 	"time"
+
+	"github.com/hajimehoshi/ebiten/v2"
 )
 
 const (
@@ -55,6 +57,21 @@ type AircraftDB struct {
 	Mutex    sync.Mutex
 }
 
+func (adb *AircraftDB) GetAircraft() map[int]Aircraft {
+	output := make(map[int]Aircraft)
+	adb.Mutex.Lock()
+	defer adb.Mutex.Unlock()
+	for k, v := range adb.Aircraft {
+		output[k] = Aircraft{
+			Callsign: v.Callsign,
+			Lat:      v.Lat,
+			Long:     v.Long,
+			Track:    v.Track,
+		}
+	}
+	return output
+}
+
 func (adb *AircraftDB) newAircraft(icao int) {
 	_, icaoInDB := adb.Aircraft[icao]
 	if !icaoInDB {
@@ -65,9 +82,10 @@ func (adb *AircraftDB) newAircraft(icao int) {
 	}
 }
 
-func (adb *AircraftDB) UpdateCallsign(icao int, callsign string) {
+func (adb *AircraftDB) SetCallsign(icao int, callsign string) {
 	adb.newAircraft(icao)
 	if adb.Aircraft[icao].Callsign != callsign {
+		defer ebiten.ScheduleFrame()
 		adb.Mutex.Lock()
 		defer adb.Mutex.Unlock()
 		// log.Printf("AircraftDB[%X]: Updated callsign to: %s", icao, callsign)
@@ -75,9 +93,10 @@ func (adb *AircraftDB) UpdateCallsign(icao int, callsign string) {
 	}
 }
 
-func (adb *AircraftDB) UpdateLat(icao int, lat float64) {
+func (adb *AircraftDB) SetLat(icao int, lat float64) {
 	adb.newAircraft(icao)
 	if adb.Aircraft[icao].Lat != lat {
+		defer ebiten.ScheduleFrame()
 		adb.Mutex.Lock()
 		defer adb.Mutex.Unlock()
 		// log.Printf("AircraftDB[%X]: Updated lat to: %f", icao, lat)
@@ -85,9 +104,10 @@ func (adb *AircraftDB) UpdateLat(icao int, lat float64) {
 	}
 }
 
-func (adb *AircraftDB) UpdateLong(icao int, long float64) {
+func (adb *AircraftDB) SetLong(icao int, long float64) {
 	adb.newAircraft(icao)
 	if adb.Aircraft[icao].Long != long {
+		defer ebiten.ScheduleFrame()
 		adb.Mutex.Lock()
 		defer adb.Mutex.Unlock()
 		// log.Printf("AircraftDB[%X]: Updated long to: %f", icao, long)
@@ -95,9 +115,10 @@ func (adb *AircraftDB) UpdateLong(icao int, long float64) {
 	}
 }
 
-func (adb *AircraftDB) UpdateTrack(icao int, track int) {
+func (adb *AircraftDB) SetTrack(icao int, track int) {
 	adb.newAircraft(icao)
 	if adb.Aircraft[icao].Track != track {
+		defer ebiten.ScheduleFrame()
 		adb.Mutex.Lock()
 		defer adb.Mutex.Unlock()
 		// log.Printf("AircraftDB[%X]: Updated track to: %d", icao, track)
@@ -105,7 +126,7 @@ func (adb *AircraftDB) UpdateTrack(icao int, track int) {
 	}
 }
 
-func (adb *AircraftDB) UpdateLastSeen(icao int) {
+func (adb *AircraftDB) SetLastSeen(icao int) {
 	adb.newAircraft(icao)
 	adb.Mutex.Lock()
 	defer adb.Mutex.Unlock()
