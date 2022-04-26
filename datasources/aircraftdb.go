@@ -3,6 +3,9 @@ package datasources
 import (
 	_ "embed"
 	"encoding/json"
+	"fmt"
+	"reflect"
+	"strconv"
 
 	"log"
 	"sync"
@@ -16,16 +19,24 @@ const (
 )
 
 //go:embed readsb_json/aircrafts.json
-var readsbAircraftsJSONBlob []byte
+var readsbAircraftsJSONBlob []byte // format: {"icao":["registration","type","flags"],...}
+
+var readsbAircraftsJSON map[int]readsbAircraft
+
+type readsbAircraft struct {
+	registration string
+	aircraftType string
+	// flags        int
+}
 
 //go:embed readsb_json/dbversion.json
 var readsbDBVersionJSONBlob []byte
 
 //go:embed readsb_json/operators.json
-var readsbDBOperatorsJSONBlob []byte
+var readsbDBOperatorsJSONBlob []byte // format: {"id":["name","country","radio"],...}
 
 //go:embed readsb_json/types.json
-var readsbDBTypesJSONBlob []byte
+var readsbDBTypesJSONBlob []byte // format: {"type":["model","species","wtc"],
 
 func init() {
 
@@ -72,10 +83,59 @@ func (adb *AircraftDB) GetAircraft() map[int]Aircraft {
 	return output
 }
 
+func BuildReadsbAircraftsJSON(wg *sync.WaitGroup) {
+	wg.Add(1)
+	log.Println("Processing aircraft.json")
+
+	readsbAircraftsJSON = make(map[int]readsbAircraft)
+
+	data := make(map[string]interface{})
+	err := json.Unmarshal(readsbAircraftsJSONBlob, &data)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	for k, v := range data {
+
+		// get icao
+		icao64, err := strconv.ParseInt(k, 16, 64)
+		if err != nil {
+			log.Fatal(err)
+		}
+		icao := int(icao64)
+
+		// get data from interface{}
+
+		// sanity checks
+		if reflect.TypeOf(v).Kind() != reflect.Slice {
+			log.Fatal("aircraft.json: JSON data not type of slice")
+		}
+		vr := reflect.ValueOf(v)
+
+		readsbAircraftsJSON[icao] = readsbAircraft{
+			registration: vr.Index(0).Elem().String(),
+			aircraftType: vr.Index(1).Elem().String(),
+		}
+	}
+	log.Println("Finished processing aircraft.json")
+	wg.Done()
+}
+
 func (adb *AircraftDB) newAircraft(icao int) {
 	_, icaoInDB := adb.Aircraft[icao]
 	if !icaoInDB {
-		log.Printf("AircraftDB[%6X]: Added to DB", icao)
+
+		aircraftType := readsbAircraftsJSON[icao].aircraftType
+
+		logmsg := fmt.Sprintf("AircraftDB[%6X]: Now recieving", icao)
+		if aircraftType != "" {
+			logmsg = fmt.Sprintf("%s, type: %s", logmsg, aircraftType)
+		} else {
+			logmsg = fmt.Sprintf("%s, type unknown", logmsg)
+		}
+
+		log.Println(logmsg)
+
 		adb.Mutex.Lock()
 		defer adb.Mutex.Unlock()
 		adb.Aircraft[icao] = &Aircraft{}

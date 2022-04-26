@@ -17,6 +17,9 @@ type aircraftMarker struct {
 }
 
 // map key (and the order of the map) is ICAO
+
+// ref: https://www.icao.int/publications/doc8643/pages/search.aspx
+
 var Aircraft = map[string]aircraftMarker{
 	"A320": {
 		manufacturer: "AIRBUS",
@@ -128,16 +131,16 @@ func InitMarkers() (imgs map[string]Marker, err error) {
 		a: 1,
 	}
 
-	var wg sync.WaitGroup
+	var wgInner sync.WaitGroup
 	c := make(chan Marker, len(Aircraft))
 
 	// Pre-render aircraft concurrently
 	for k, v := range Aircraft {
 
-		wg.Add(1)
+		wgInner.Add(1)
 
 		go func(k string, v aircraftMarker) {
-			defer wg.Done()
+			defer wgInner.Done()
 			log.Printf("Pre-rendering sprites: %s %s (ICAO: %s)", v.manufacturer, v.model, k)
 
 			r := renderSVG{
@@ -167,7 +170,7 @@ func InitMarkers() (imgs map[string]Marker, err error) {
 		}(k, v)
 	}
 
-	wg.Wait()
+	wgInner.Wait()
 	log.Println("Pre-rendering finished, building Marker map")
 
 	// Read markers out of channel, into object to be returned
