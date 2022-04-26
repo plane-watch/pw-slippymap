@@ -56,11 +56,12 @@ func init() {
 }
 
 type Aircraft struct {
-	Callsign    string
-	Lat         float64
-	Long        float64
-	Track       int
-	LastUpdated int64
+	Callsign     string
+	Lat          float64
+	Long         float64
+	Track        int
+	LastUpdated  int64
+	AircraftType string
 }
 
 type AircraftDB struct {
@@ -74,10 +75,11 @@ func (adb *AircraftDB) GetAircraft() map[int]Aircraft {
 	defer adb.Mutex.Unlock()
 	for k, v := range adb.Aircraft {
 		output[k] = Aircraft{
-			Callsign: v.Callsign,
-			Lat:      v.Lat,
-			Long:     v.Long,
-			Track:    v.Track,
+			Callsign:     v.Callsign,
+			Lat:          v.Lat,
+			Long:         v.Long,
+			Track:        v.Track,
+			AircraftType: v.AircraftType,
 		}
 	}
 	return output
@@ -100,7 +102,9 @@ func (adb *AircraftDB) newAircraft(icao int) {
 
 		adb.Mutex.Lock()
 		defer adb.Mutex.Unlock()
-		adb.Aircraft[icao] = &Aircraft{}
+		adb.Aircraft[icao] = &Aircraft{
+			AircraftType: aircraftType,
+		}
 	}
 }
 
