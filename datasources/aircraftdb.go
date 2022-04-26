@@ -1,6 +1,9 @@
 package datasources
 
 import (
+	_ "embed"
+	"encoding/json"
+
 	"log"
 	"sync"
 	"time"
@@ -9,6 +12,35 @@ import (
 const (
 	FORGET_AIRCRAFT_AFTER_SECONDS = 60
 )
+
+//go:embed readsb_json/aircrafts.json
+var readsbAircraftsJSONBlob []byte
+
+//go:embed readsb_json/dbversion.json
+var readsbDBVersionJSONBlob []byte
+
+//go:embed readsb_json/operators.json
+var readsbDBOperatorsJSONBlob []byte
+
+//go:embed readsb_json/types.json
+var readsbDBTypesJSONBlob []byte
+
+func init() {
+
+	// ensure the embedded JSON is valid
+	if !json.Valid(readsbAircraftsJSONBlob) {
+		log.Fatal("Embedded aircrafts.json is invalid")
+	}
+	if !json.Valid(readsbDBVersionJSONBlob) {
+		log.Fatal("Embedded dbversion.json is invalid")
+	}
+	if !json.Valid(readsbDBOperatorsJSONBlob) {
+		log.Fatal("Embedded operators.json is invalid")
+	}
+	if !json.Valid(readsbDBTypesJSONBlob) {
+		log.Fatal("Embedded types.json is invalid")
+	}
+}
 
 type Aircraft struct {
 	Callsign    string
@@ -109,4 +141,13 @@ func NewAircraftDB() *AircraftDB {
 	adb.Aircraft = make(map[int]*Aircraft)
 	go adb.forgetter()
 	return &adb
+}
+
+func GetReadsbDBVersion() int {
+	data := make(map[string]interface{})
+	err := json.Unmarshal(readsbDBVersionJSONBlob, &data)
+	if err != nil {
+		log.Fatal(err)
+	}
+	return int(data["version"].(float64))
 }
