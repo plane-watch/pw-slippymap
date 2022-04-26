@@ -1,0 +1,46 @@
+---
+name: Refresh readsb json files 
+
+on:
+  workflow_dispatch:
+
+jobs:
+
+  readsb-json:
+    name: Update JSON files from readsb
+    runs-on: ubuntu-latest
+    steps:
+
+    - uses: actions/checkout@v3
+
+    - name: Ensure directory structure exists
+      run: |
+        set -x
+        mkdir -p ./datasources/readsb_json
+
+    - name: Check for changes
+      id: check-changes
+      run: |
+        set -x
+        curl -o ./datasources/readsb_json/dbversion.json https://github.com/Mictronics/readsb-protobuf/blob/dev/webapp/src/db/dbversion.json
+        CHANGES=$(git diff ./datasources/readsb_json/dbversion.json)
+        if [[ -n "$CHANGES" ]]; then
+          echo "::set-output name=add_and_commit::true"
+        fi        
+
+    - name: Fetch latest readsb json files
+      if: steps.check-changes.outputs.add_and_commit == true
+      run: |
+        set -x
+        curl -o ./datasources/readsb_json/aircrafts.json https://github.com/Mictronics/readsb-protobuf/raw/dev/webapp/src/db/aircrafts.json
+        curl -o ./datasources/readsb_json/operators.json https://github.com/Mictronics/readsb-protobuf/raw/dev/webapp/src/db/operators.json
+        curl -o ./datasources/readsb_json/types.json https://github.com/Mictronics/readsb-protobuf/raw/dev/webapp/src/db/types.json
+    
+    - name: Add and commit
+      if: steps.check-changes.outputs.add_and_commit == true
+      run: |
+        git config user.name github-actions
+        git config user.email github-actions@github.com
+        git add ./datasources/readsb_json/*.json
+        git commit -m "update of readsb json files"
+        git push
