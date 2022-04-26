@@ -83,44 +83,6 @@ func (adb *AircraftDB) GetAircraft() map[int]Aircraft {
 	return output
 }
 
-func BuildReadsbAircraftsJSON(wg *sync.WaitGroup) {
-	wg.Add(1)
-	log.Println("Processing aircraft.json")
-
-	readsbAircraftsJSON = make(map[int]readsbAircraft)
-
-	data := make(map[string]interface{})
-	err := json.Unmarshal(readsbAircraftsJSONBlob, &data)
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	for k, v := range data {
-
-		// get icao
-		icao64, err := strconv.ParseInt(k, 16, 64)
-		if err != nil {
-			log.Fatal(err)
-		}
-		icao := int(icao64)
-
-		// get data from interface{}
-
-		// sanity checks
-		if reflect.TypeOf(v).Kind() != reflect.Slice {
-			log.Fatal("aircraft.json: JSON data not type of slice")
-		}
-		vr := reflect.ValueOf(v)
-
-		readsbAircraftsJSON[icao] = readsbAircraft{
-			registration: vr.Index(0).Elem().String(),
-			aircraftType: vr.Index(1).Elem().String(),
-		}
-	}
-	log.Println("Finished processing aircraft.json")
-	wg.Done()
-}
-
 func (adb *AircraftDB) newAircraft(icao int) {
 	_, icaoInDB := adb.Aircraft[icao]
 	if !icaoInDB {
@@ -231,4 +193,42 @@ func GetReadsbDBVersion() int {
 		log.Fatal(err)
 	}
 	return int(data["version"].(float64))
+}
+
+func BuildReadsbAircraftsJSON(wg *sync.WaitGroup) {
+	wg.Add(1)
+	log.Println("Processing aircraft.json")
+
+	readsbAircraftsJSON = make(map[int]readsbAircraft)
+
+	data := make(map[string]interface{})
+	err := json.Unmarshal(readsbAircraftsJSONBlob, &data)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	for k, v := range data {
+
+		// get icao
+		icao64, err := strconv.ParseInt(k, 16, 64)
+		if err != nil {
+			log.Fatal(err)
+		}
+		icao := int(icao64)
+
+		// get data from interface{}
+
+		// sanity checks
+		if reflect.TypeOf(v).Kind() != reflect.Slice {
+			log.Fatal("aircraft.json: JSON data not type of slice")
+		}
+		vr := reflect.ValueOf(v)
+
+		readsbAircraftsJSON[icao] = readsbAircraft{
+			registration: vr.Index(0).Elem().String(),
+			aircraftType: vr.Index(1).Elem().String(),
+		}
+	}
+	log.Println("Finished processing aircraft.json")
+	wg.Done()
 }
