@@ -1038,20 +1038,6 @@ func TestReadsbProtobuf(t *testing.T) {
 	pbData, err := os.ReadFile(testDataFile)
 	require.NoError(t, err)
 
-	// url := "http://192.168.69.35:8079/data/aircraft.pb"
-
-	// // Get data
-	// resp, err := http.Get(url)
-	// if err != nil {
-	// 	log.Fatal(err)
-	// }
-	// defer resp.Body.Close()
-
-	// bodyBytes, err := ioutil.ReadAll(pbData)
-	// if err != nil {
-	// 	log.Fatal(err)
-	// }
-
 	m := &AircraftsUpdate{}
 	err = proto.Unmarshal(pbData, m)
 
