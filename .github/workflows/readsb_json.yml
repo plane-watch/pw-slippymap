@@ -30,7 +30,7 @@ jobs:
         fi        
 
     - name: Fetch latest readsb json files
-      if: steps.check-changes.outputs.add_and_commit == true
+      if: steps.check-changes.outputs.add_and_commit == 'true'
       run: |
         set -x
         curl -o ./datasources/readsb_json/aircrafts.json https://raw.githubusercontent.com/Mictronics/readsb-protobuf/dev/webapp/src/db/aircrafts.json
@@ -38,7 +38,7 @@ jobs:
         curl -o ./datasources/readsb_json/types.json https://raw.githubusercontent.com/Mictronics/readsb-protobuf/dev/webapp/src/db/types.json
     
     - name: Add and commit
-      if: steps.check-changes.outputs.add_and_commit == true
+      if: steps.check-changes.outputs.add_and_commit == 'true'
       run: |
         git config user.name github-actions
         git config user.email github-actions@github.com
