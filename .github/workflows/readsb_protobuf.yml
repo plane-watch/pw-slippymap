@@ -23,6 +23,11 @@ jobs:
         go install -v google.golang.org/protobuf/cmd/protoc-gen-go@latest
         go install -v google.golang.org/grpc/cmd/protoc-gen-go-grpc@latest
 
+    - name: Ensure directory structure exists
+      run: |
+        set -x
+        mkdir -p ./datasources/readsb_protobuf
+
     - name: Fetch latest readsb.proto
       run: |
         set -x
