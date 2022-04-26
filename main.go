@@ -4,10 +4,13 @@ import (
 	"fmt"
 	"image/color"
 	"log"
+	"os"
+	"pw_slippymap/datasources"
 	"pw_slippymap/markers"
 	"pw_slippymap/slippymap"
 	"pw_slippymap/userinput"
 
+	"github.com/akamensky/argparse"
 	"github.com/hajimehoshi/ebiten/v2"
 	"github.com/hajimehoshi/ebiten/v2/ebitenutil"
 	"github.com/hajimehoshi/ebiten/v2/inpututil"
@@ -259,11 +262,55 @@ func failFatally(err error) {
 	}
 }
 
-func main() {
+type runtimeConfiguration struct {
+	readsbAircraftProtobufUrl string
+}
 
+func processCommandLine() runtimeConfiguration {
+	// process the command line
+
+	// create new parser object
+	parser := argparse.NewParser("pw-slippymap", "front-end for plane.watch")
+
+	// readsb-protobuf aircraft.pb URL
+	readsbAircraftProtobufUrl := parser.String("", "aircraftpburl", &argparse.Options{Required: false, Help: "Uses readsb-protobuf aircraft.pb as a data source. Eg: 'http://1.2.3.4/data/aircraft.pb'"})
+
+	// Parse input
+	err := parser.Parse(os.Args)
+	if err != nil {
+		// In case of error print error and print usage
+		// This can also be done by passing -h or --help flags
+		fmt.Print(parser.Usage(err))
+	}
+
+	// Prepare runtime
+	conf := runtimeConfiguration{}
+
+	// if --aircraftpburl set, add to runtime conf
+	if *readsbAircraftProtobufUrl != "" {
+		conf.readsbAircraftProtobufUrl = *readsbAircraftProtobufUrl
+	}
+
+	return conf
+}
+
+func main() {
 	var err error
 
+	// process the command line
+	conf := processCommandLine()
+
+	// log start message
 	log.Print("Started")
+
+	// init aircraftdb
+	adb := datasources.NewAircraftDB()
+
+	// if readsb aircraft.db datasource has been specified, initialise it
+	if conf.readsbAircraftProtobufUrl != "" {
+		log.Printf("Datasource: readsb-protobuf at url: %s", conf.readsbAircraftProtobufUrl)
+		go datasources.ReadsbProtobuf(conf.readsbAircraftProtobufUrl, adb)
+	}
 
 	// load sprites
 	markerImages, err = markers.InitMarkers()
@@ -300,6 +347,7 @@ func main() {
 	// ebiten.ScheduleFrame is called within SlippyMap.Update()
 	// Should we make .Update() return a boolean that determines whether we schedule a frame in this packages Draw() function?
 	ebiten.SetFPSMode(ebiten.FPSModeVsyncOffMinimum)
+	ebiten.SetMaxTPS(60)
 
 	// run
 	defer endProgram()
