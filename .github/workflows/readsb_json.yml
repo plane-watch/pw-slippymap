@@ -22,7 +22,8 @@ jobs:
       id: check-changes
       run: |
         set -x
-        curl -o ./datasources/readsb_json/dbversion.json https://github.com/Mictronics/readsb-protobuf/blob/dev/webapp/src/db/dbversion.json
+        curl -o ./datasources/readsb_json/dbversion.json https://raw.githubusercontent.com/Mictronics/readsb-protobuf/dev/webapp/src/db/dbversion.json
+        git add ./datasources/readsb_json/dbversion.json
         CHANGES=$(git diff ./datasources/readsb_json/dbversion.json)
         if [[ -n "$CHANGES" ]]; then
           echo "::set-output name=add_and_commit::true"
@@ -32,9 +33,9 @@ jobs:
       if: steps.check-changes.outputs.add_and_commit == true
       run: |
         set -x
-        curl -o ./datasources/readsb_json/aircrafts.json https://github.com/Mictronics/readsb-protobuf/raw/dev/webapp/src/db/aircrafts.json
-        curl -o ./datasources/readsb_json/operators.json https://github.com/Mictronics/readsb-protobuf/raw/dev/webapp/src/db/operators.json
-        curl -o ./datasources/readsb_json/types.json https://github.com/Mictronics/readsb-protobuf/raw/dev/webapp/src/db/types.json
+        curl -o ./datasources/readsb_json/aircrafts.json https://raw.githubusercontent.com/Mictronics/readsb-protobuf/dev/webapp/src/db/aircrafts.json
+        curl -o ./datasources/readsb_json/operators.json https://raw.githubusercontent.com/Mictronics/readsb-protobuf/dev/webapp/src/db/operators.json
+        curl -o ./datasources/readsb_json/types.json https://raw.githubusercontent.com/Mictronics/readsb-protobuf/dev/webapp/src/db/types.json
     
     - name: Add and commit
       if: steps.check-changes.outputs.add_and_commit == true
