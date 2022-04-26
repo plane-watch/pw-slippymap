@@ -35,7 +35,17 @@ jobs:
         protoc -I=./datasources/readsb_protobuf/ --go_out=./datasources/readsb_protobuf/ --go_opt=Mreadsb.proto="./;readsb_protobuf" readsb.proto
         find . -type f
 
+    - name: Check for changes
+      id: check-changes
+      run: |
+        set -x
+        CHANGES=$(git diff ./datasources/readsb_protobuf/readsb.pb.go)
+        if [[ -n "$CHANGES" ]]; then
+          echo "::set-output name=add_and_commit::true"
+        fi 
+
     - name: Add and commit
+      if: steps.check-changes.outputs.add_and_commit == "true"
       run: |
         git config user.name github-actions
         git config user.email github-actions@github.com
