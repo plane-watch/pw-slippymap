@@ -305,6 +305,7 @@ func main() {
 
 	// init aircraftdb
 	adb := datasources.NewAircraftDB()
+	log.Printf("readsb database version: %d", datasources.GetReadsbDBVersion())
 
 	// if readsb aircraft.db datasource has been specified, initialise it
 	if conf.readsbAircraftProtobufUrl != "" {
