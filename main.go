@@ -51,6 +51,12 @@ type Game struct {
 	// user input
 	touchIDs []ebiten.TouchID
 	strokes  map[*userinput.Stroke]struct{}
+
+	// aircraft db
+	aircraftDb *datasources.AircraftDB
+
+	// markers
+	aircraftMarkers *map[string]markers.Marker
 }
 
 func (g *Game) updateStroke(stroke *userinput.Stroke) {
@@ -145,6 +151,45 @@ func (g *Game) Draw(screen *ebiten.Image) {
 	// draw map
 	g.slippymap.Draw(screen)
 
+	// draw planes ===========================================================
+	// TODO: move this into a function
+
+	// for each plane we know about
+	for _, v := range g.aircraftDb.GetAircraft() {
+
+		var aircraftMarker markers.Marker
+
+		// determine image
+		if _, ok := (*g.aircraftMarkers)[v.AircraftType]; ok {
+			// use marker that matches aircraft type if found
+			aircraftMarker = (*g.aircraftMarkers)[v.AircraftType]
+		} else {
+			// default marker
+			aircraftMarker = (*g.aircraftMarkers)["A388"]
+		}
+
+		// determine where the marker will be drawn
+		aircraftX, aircraftY, err := g.slippymap.LatLongToPixel(v.Lat, v.Long)
+		if err != nil {
+			// log.Printf("Error plotting %X: %s", k, err)
+			// plane is probably off the visible map, or not sending a position
+		} else {
+
+			// determine how the marker will be drawn
+			aircraftDrawOpts := &ebiten.DrawImageOptions{}
+			// move so centre of marker is at 0,0
+			aircraftDrawOpts.GeoM.Translate(-aircraftMarker.CentreX, -aircraftMarker.CentreY)
+			// rotate to match track
+			aircraftDrawOpts.GeoM.Rotate(slippymap.DegreesToRadians(float64(v.Track)))
+			// move to actual position
+			aircraftDrawOpts.GeoM.Translate(float64(aircraftX), float64(aircraftY))
+
+			// draw it
+			screen.DrawImage(aircraftMarker.Img, aircraftDrawOpts)
+		}
+	}
+	// end draw planes =======================================================
+
 	// osm attribution
 	windowX, windowY := g.slippymap.GetSize()
 	attributionArea := ebiten.NewImage(100, 20)
@@ -196,43 +241,50 @@ func (g *Game) Draw(screen *ebiten.Image) {
 	dbgNumTilesText := fmt.Sprintf("Tiles rendered: %d", g.slippymap.GetNumTiles())
 	ebitenutil.DebugPrintAt(screen, dbgNumTilesText, 0, 75)
 
-	// draw aircraft (TESTING)
-	m := markerImages["A388"]
+	// // draw aircraft (TESTING)
+	m := (*g.aircraftMarkers)["A388"]
 	do := m.MarkerDrawOpts(dbgMarkerRotateAngle, 203, 5)
 	screen.DrawImage(m.Img, &do)
 	ebitenutil.DebugPrintAt(screen, "A388", 203, 40)
 
-	m = markerImages["F100"]
+	// m = markerImages["F100"]
+	m = (*g.aircraftMarkers)["F100"]
 	do = m.MarkerDrawOpts(dbgMarkerRotateAngle, 257, 5)
 	screen.DrawImage(m.Img, &do)
 	ebitenutil.DebugPrintAt(screen, "F100", 257, 40)
 
-	m = markerImages["PC12"]
+	// m = markerImages["PC12"]
+	m = (*g.aircraftMarkers)["PC12"]
 	do = m.MarkerDrawOpts(dbgMarkerRotateAngle, 300, 5)
 	screen.DrawImage(m.Img, &do)
 	ebitenutil.DebugPrintAt(screen, "PC12", 300, 40)
 
-	m = markerImages["SF34"]
+	// m = markerImages["SF34"]
+	m = (*g.aircraftMarkers)["SF34"]
 	do = m.MarkerDrawOpts(dbgMarkerRotateAngle, 350, 5)
 	screen.DrawImage(m.Img, &do)
 	ebitenutil.DebugPrintAt(screen, "SF34", 350, 40)
 
-	m = markerImages["E190"]
+	// m = markerImages["E190"]
+	m = (*g.aircraftMarkers)["E190"]
 	do = m.MarkerDrawOpts(dbgMarkerRotateAngle, 400, 5)
 	screen.DrawImage(m.Img, &do)
 	ebitenutil.DebugPrintAt(screen, "E190", 400, 40)
 
-	m = markerImages["DH8D"]
+	// m = markerImages["DH8D"]
+	m = (*g.aircraftMarkers)["DH8D"]
 	do = m.MarkerDrawOpts(dbgMarkerRotateAngle, 450, 5)
 	screen.DrawImage(m.Img, &do)
 	ebitenutil.DebugPrintAt(screen, "DH8D", 450, 40)
 
-	m = markerImages["A320"]
+	// m = markerImages["A320"]
+	m = (*g.aircraftMarkers)["A320"]
 	do = m.MarkerDrawOpts(dbgMarkerRotateAngle, 500, 5)
 	screen.DrawImage(m.Img, &do)
 	ebitenutil.DebugPrintAt(screen, "A320", 500, 40)
 
-	m = markerImages["B738"]
+	// m = markerImages["B738"]
+	m = (*g.aircraftMarkers)["B738"]
 	do = m.MarkerDrawOpts(dbgMarkerRotateAngle, 550, 5)
 	screen.DrawImage(m.Img, &do)
 	ebitenutil.DebugPrintAt(screen, "B738", 550, 40)
@@ -310,7 +362,7 @@ func main() {
 	log.Printf("readsb database version: %d", datasources.GetReadsbDBVersion())
 
 	// load sprites
-	markerImages, err = markers.InitMarkers()
+	aircraftMarkers, err := markers.InitMarkers()
 	failFatally(err)
 
 	// determine starting window size
@@ -343,8 +395,10 @@ func main() {
 
 	// prepare "game"
 	g := &Game{
-		slippymap: &sm,
-		strokes:   map[*userinput.Stroke]struct{}{},
+		slippymap:       &sm,
+		aircraftDb:      adb,
+		aircraftMarkers: &aircraftMarkers,
+		strokes:         map[*userinput.Stroke]struct{}{},
 	}
 
 	// In FPSModeVsyncOffMinimum, the game's Update and Draw are called only when

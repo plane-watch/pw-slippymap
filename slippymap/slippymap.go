@@ -6,6 +6,7 @@ import (
 	_ "image/png"
 	"log"
 	"math"
+	"pw_slippymap/datasources"
 	"sync"
 
 	"github.com/hajimehoshi/ebiten/v2"
@@ -73,6 +74,8 @@ type SlippyMap struct {
 	offsetMaximumY int // maximum Y value for map tiles
 
 	tileProvider TileProvider // the tile provider for the slippymap
+
+	aircraftDb *datasources.AircraftDB // aircraft db
 }
 
 func (sm *SlippyMap) GetZoomLevel() (zoomLevel int) {
@@ -428,7 +431,10 @@ func (sm *SlippyMap) SetZoomLevel(zoomLevel int, lat_deg, long_deg float64) (new
 	return newsm, nil
 }
 
-func NewSlippyMap(mapWidthPx, mapHeightPx, zoomLevel int, centreLat, centreLong float64, tileProvider TileProvider) (sm SlippyMap) {
+func NewSlippyMap(
+	mapWidthPx, mapHeightPx, zoomLevel int,
+	centreLat, centreLong float64,
+	tileProvider TileProvider) (sm SlippyMap) {
 
 	log.Printf("Initialising SlippyMap at %0.4f/%0.4f, zoom level %d", centreLat, centreLong, zoomLevel)
 

@@ -213,6 +213,7 @@ func BuildReadsbAircraftsJSON(wg *sync.WaitGroup) {
 		log.Fatal(err)
 	}
 
+	// pull information from JSON
 	for k, v := range data {
 
 		// get icao
@@ -221,8 +222,6 @@ func BuildReadsbAircraftsJSON(wg *sync.WaitGroup) {
 			log.Fatal(err)
 		}
 		icao := int(icao64)
-
-		// get data from interface{}
 
 		// sanity checks
 		if reflect.TypeOf(v).Kind() != reflect.Slice {
