@@ -86,7 +86,9 @@ func (adb *AircraftDB) GetAircraft() map[int]Aircraft {
 }
 
 func (adb *AircraftDB) newAircraft(icao int) {
+	adb.Mutex.Lock()
 	_, icaoInDB := adb.Aircraft[icao]
+	adb.Mutex.Unlock()
 	if !icaoInDB {
 
 		aircraftType := readsbAircraftsJSON[icao].aircraftType
