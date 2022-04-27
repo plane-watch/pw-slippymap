@@ -65,8 +65,10 @@ type Aircraft struct {
 }
 
 type AircraftDB struct {
-	Aircraft map[int]*Aircraft
-	Mutex    sync.Mutex
+	Aircraft    map[int]*Aircraft
+	Mutex       sync.Mutex
+	idleTimeout int64 // seconds
+
 }
 
 func (adb *AircraftDB) GetAircraft() map[int]Aircraft {
@@ -173,8 +175,8 @@ func (adb *AircraftDB) forgetter() {
 	// for each aircraft entry
 	for k, _ := range adb.Aircraft {
 
-		// forget entries with LastUpdated older than FORGET_AIRCRAFT_AFTER_SECONDS
-		if time.Now().Unix() > adb.Aircraft[k].LastUpdated+FORGET_AIRCRAFT_AFTER_SECONDS {
+		// forget entries with LastUpdated older than adb.idleTimeout
+		if time.Now().Unix() > adb.Aircraft[k].LastUpdated+adb.idleTimeout {
 			log.Printf("AircraftDB[%X]: Forgetting inactive aircraft", k)
 			defer delete(adb.Aircraft, k)
 		}
@@ -184,9 +186,11 @@ func (adb *AircraftDB) forgetter() {
 	go adb.forgetter()
 }
 
-func NewAircraftDB() *AircraftDB {
+func NewAircraftDB(idleTimeout int64) *AircraftDB {
 	// Initialises and returns a pointer to an aircraft db
-	adb := AircraftDB{}
+	adb := AircraftDB{
+		idleTimeout: idleTimeout,
+	}
 	adb.Aircraft = make(map[int]*Aircraft)
 	go adb.forgetter()
 	return &adb

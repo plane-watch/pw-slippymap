@@ -358,7 +358,7 @@ func main() {
 	go datasources.BuildReadsbAircraftsJSON(&startupWg)
 
 	// init aircraftdb
-	adb := datasources.NewAircraftDB()
+	adb := datasources.NewAircraftDB(60)
 	log.Printf("readsb database version: %d", datasources.GetReadsbDBVersion())
 
 	// load sprites
