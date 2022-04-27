@@ -9,12 +9,13 @@ A [Slippy Map](https://wiki.openstreetmap.org/wiki/Slippy_Map) written in Go, ru
 * Loads as a desktop app and displays the slippy map in a window
 * You can pan around with the mouse by dragging
 * You can zoom with mouse wheel
+* Planes on map
+  * Reads readsb-protobuf aircraft.pb from URL every *n* milliseconds
+
 
 ## Future
 
-* Get planes on map
-  * Read readsb-protobuf aircraft.pb from URL every *n* seconds
-  * Read positions from message bus
+* Read aircraft positions from message bus
 * Draw paths and stuff (polyline) on map
 * Add scale (ref: <https://wiki.openstreetmap.org/wiki/Slippy_map_tilenames#Resolution_and_Scale>)
 * Add UI buttons for zoom, paths, labels etc
