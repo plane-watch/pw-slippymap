@@ -52,9 +52,11 @@ type MapTile struct {
 type SlippyMap struct {
 	img *ebiten.Image // map image
 
-	offsetX     int  // hold the current X offset
-	offsetY     int  // hold the current Y offset
+	offsetX int // hold the current X offset
+	offsetY int // hold the current Y offset
+
 	need_update bool // do we need to process Update()
+	need_draw   bool // do we need to process Draw()
 
 	tiles      []*MapTile // map tiles
 	tilesMutex sync.Mutex // Mutex to avoid races
@@ -87,26 +89,33 @@ func (sm *SlippyMap) Draw(screen *ebiten.Image) {
 
 	// draw the previous zoom level in the background so zooming fades nicely
 	// TODO: stretch this image so it looks like we're zooming in, new tiles will fade in over old ones
-	screen.DrawImage(sm.zoomPrevLevelImg, nil)
 
-	// render tiles onto sm.img
-	for _, t := range sm.tiles {
-		dio := &ebiten.DrawImageOptions{}
+	if sm.need_draw {
 
-		// move the image where it needs to be in the window
-		dio.GeoM.Translate(float64((*t).offsetX), float64((*t).offsetY))
+		screen.DrawImage(sm.zoomPrevLevelImg, nil)
 
-		// adjust transparency (for fade-in of tiles)
-		dio.ColorM.Scale(1, 1, 1, (*t).alpha)
+		// render tiles onto sm.img
+		for _, t := range sm.tiles {
+			dio := &ebiten.DrawImageOptions{}
 
-		// draw the tile
-		t.imgMutex.Lock()
-		sm.img.DrawImage(t.img, dio)
-		t.imgMutex.Unlock()
+			// move the image where it needs to be in the window
+			dio.GeoM.Translate(float64((*t).offsetX), float64((*t).offsetY))
 
-		// debugging: print the OSM tile X/Y/Z
-		dbgText := fmt.Sprintf("%d/%d/%d", (*t).osm.x, (*t).osm.y, (*t).osm.zoom)
-		ebitenutil.DebugPrintAt(sm.img, dbgText, (*t).offsetX, (*t).offsetY)
+			// adjust transparency (for fade-in of tiles)
+			dio.ColorM.Scale(1, 1, 1, (*t).alpha)
+
+			// draw the tile
+			t.imgMutex.Lock()
+			sm.img.DrawImage(t.img, dio)
+			t.imgMutex.Unlock()
+
+			// debugging: print the OSM tile X/Y/Z
+			dbgText := fmt.Sprintf("%d/%d/%d", (*t).osm.x, (*t).osm.y, (*t).osm.zoom)
+			ebitenutil.DebugPrintAt(sm.img, dbgText, (*t).offsetX, (*t).offsetY)
+		}
+
+		sm.need_draw = false
+
 	}
 
 	// draw sm.img to the game screen
@@ -126,6 +135,7 @@ func (sm *SlippyMap) MoveBy(deltaOffsetX, deltaOffsetY int) {
 	}
 	if deltaOffsetX != 0 || deltaOffsetY != 0 {
 		sm.need_update = true
+		sm.need_draw = true
 	}
 }
 
@@ -134,10 +144,6 @@ func (sm *SlippyMap) Update(forceUpdate bool) {
 	//  - Loads any missing tiles
 	//  - Cleans up any tiles that are "out of bounds"
 
-	var wereTilesCleanedUp bool // were off screen tiles cleaned up?
-	var wereTilesAlphad bool    // did tiles have their alpha changed?
-	var wereTilesCreated bool   // were tiles created?
-
 	// don't update unless required
 	//   * offscreen tiles are being cleaned up; or
 	//   * user has moved the map; or
@@ -145,20 +151,23 @@ func (sm *SlippyMap) Update(forceUpdate bool) {
 	//   * new tiles were created
 	if forceUpdate || sm.need_update {
 
+		sm.need_update = false
+
 		// for each tile
 		for i, t := range sm.tiles {
 
 			// new tiles created if required
 			// note: if defer is used, the wrong artwork bug seems more prevalent? maybe coincidence...
-			wereTilesCreated = sm.makeNeighbourTile(DIRECTION_NORTH, t) || wereTilesCreated
-			wereTilesCreated = sm.makeNeighbourTile(DIRECTION_SOUTH, t) || wereTilesCreated
-			wereTilesCreated = sm.makeNeighbourTile(DIRECTION_EAST, t) || wereTilesCreated
-			wereTilesCreated = sm.makeNeighbourTile(DIRECTION_WEST, t) || wereTilesCreated
+			sm.need_update = sm.makeNeighbourTile(DIRECTION_NORTH, t) || sm.need_update
+			sm.need_update = sm.makeNeighbourTile(DIRECTION_SOUTH, t) || sm.need_update
+			sm.need_update = sm.makeNeighbourTile(DIRECTION_EAST, t) || sm.need_update
+			sm.need_update = sm.makeNeighbourTile(DIRECTION_WEST, t) || sm.need_update
 
 			// increase alpha channel (for fade in, if needed)
 			if (*t).alpha < 1 {
 				(*t).alpha = (*t).alpha + TILE_FADEIN_ALPHA_PER_TICK
-				wereTilesAlphad = true
+				sm.need_update = true
+				sm.need_draw = true
 				ebiten.ScheduleFrame()
 			}
 
@@ -166,19 +175,11 @@ func (sm *SlippyMap) Update(forceUpdate bool) {
 			if sm.isOutOfBounds((*t).offsetX, (*t).offsetY) {
 				sm.tiles[i] = sm.tiles[len(sm.tiles)-1]
 				sm.tiles = sm.tiles[:len(sm.tiles)-1]
-				wereTilesCleanedUp = true
+				sm.need_update = false
 				break
 			}
 		}
 	}
-
-	// work out whether this function needs to run next iteration
-	if wereTilesCleanedUp || wereTilesAlphad || wereTilesCreated {
-		sm.need_update = true
-	} else {
-		sm.need_update = false
-	}
-
 }
 
 func (sm *SlippyMap) makeNeighbourTile(direction int, existingTile *MapTile) (tileCreated bool) {
