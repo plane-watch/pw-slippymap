@@ -93,36 +93,38 @@ func (sm *SlippyMap) Draw(screen *ebiten.Image) {
 	// draw the previous zoom level in the background so zooming fades nicely
 	// TODO: stretch this image so it looks like we're zooming in, new tiles will fade in over old ones
 
-	if sm.need_draw {
+	// if sm.need_draw {
 
-		screen.DrawImage(sm.zoomPrevLevelImg, nil)
+	screen.DrawImage(sm.zoomPrevLevelImg, nil)
 
-		// render tiles onto sm.img
-		for _, t := range sm.tiles {
-			dio := &ebiten.DrawImageOptions{}
+	// render tiles onto sm.img
+	for _, t := range sm.tiles {
+		dio := &ebiten.DrawImageOptions{}
 
-			// move the image where it needs to be in the window
-			dio.GeoM.Translate(float64((*t).offsetX), float64((*t).offsetY))
+		// move the image where it needs to be in the window
+		dio.GeoM.Translate(float64((*t).offsetX), float64((*t).offsetY))
 
-			// adjust transparency (for fade-in of tiles)
-			dio.ColorM.Scale(1, 1, 1, (*t).alpha)
+		// adjust transparency (for fade-in of tiles)
+		dio.ColorM.Scale(1, 1, 1, (*t).alpha)
 
-			// draw the tile
-			t.imgMutex.Lock()
-			sm.img.DrawImage(t.img, dio)
-			t.imgMutex.Unlock()
+		// draw the tile
+		t.imgMutex.Lock()
+		// sm.img.DrawImage(t.img, dio)
+		screen.DrawImage(t.img, dio)
+		t.imgMutex.Unlock()
 
-			// debugging: print the OSM tile X/Y/Z
-			dbgText := fmt.Sprintf("%d/%d/%d", (*t).osm.x, (*t).osm.y, (*t).osm.zoom)
-			ebitenutil.DebugPrintAt(sm.img, dbgText, (*t).offsetX, (*t).offsetY)
-		}
-
-		sm.need_draw = false
-
+		// debugging: print the OSM tile X/Y/Z
+		dbgText := fmt.Sprintf("%d/%d/%d", (*t).osm.x, (*t).osm.y, (*t).osm.zoom)
+		// ebitenutil.DebugPrintAt(sm.img, dbgText, (*t).offsetX, (*t).offsetY)
+		ebitenutil.DebugPrintAt(screen, dbgText, (*t).offsetX, (*t).offsetY)
 	}
 
+	sm.need_draw = false
+
+	// }
+
 	// draw sm.img to the game screen
-	screen.DrawImage(sm.img, nil)
+	// screen.DrawImage(sm.img, nil)
 
 }
 
