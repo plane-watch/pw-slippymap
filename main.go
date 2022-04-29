@@ -69,8 +69,6 @@ func (g *Game) updateStroke(stroke *userinput.Stroke) {
 
 func (g *Game) Update() error {
 
-	// temporarily commented out lots of stuff just to play with SVG artwork.
-
 	// zoom: handle wheel
 	_, dy := ebiten.Wheel()
 
@@ -145,8 +143,6 @@ func (g *Game) Update() error {
 }
 
 func (g *Game) Draw(screen *ebiten.Image) {
-
-	// temporarily commented out lots of stuff just to play with SVG artwork.
 
 	// draw map
 	g.slippymap.Draw(screen)
