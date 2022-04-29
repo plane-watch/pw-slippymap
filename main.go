@@ -9,6 +9,7 @@ import (
 	"pw_slippymap/markers"
 	"pw_slippymap/slippymap"
 	"pw_slippymap/userinput"
+	"sort"
 	"sync"
 
 	"github.com/akamensky/argparse"
@@ -150,8 +151,20 @@ func (g *Game) Draw(screen *ebiten.Image) {
 	// draw planes ===========================================================
 	// TODO: move this into a function
 
+	// determine draw order
+	// currently we order based on ICAO
+	// TODO: change order based on altitude
+	aircraftMap := g.aircraftDb.GetAircraft()
+	aircraftIcaos := make([]int, len(aircraftMap)) //, 0, len(aircraftMap))
+	for k := range aircraftMap {
+		aircraftIcaos = append(aircraftIcaos, k)
+	}
+	sort.Ints(aircraftIcaos)
+
 	// for each plane we know about
-	for _, v := range g.aircraftDb.GetAircraft() {
+	for _, k := range aircraftIcaos {
+
+		v := aircraftMap[k]
 
 		var aircraftMarker markers.Marker
 
