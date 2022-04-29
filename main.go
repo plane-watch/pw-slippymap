@@ -169,13 +169,14 @@ func (g *Game) Draw(screen *ebiten.Image) {
 		var aircraftMarker markers.Marker
 
 		// determine image
-		if _, ok := (*g.aircraftMarkers)[v.AircraftType]; ok {
-			// use marker that matches aircraft type if found
-			aircraftMarker = (*g.aircraftMarkers)[v.AircraftType]
-		} else {
-			// default marker
-			aircraftMarker = (*g.aircraftMarkers)["A388"]
-		}
+		// if _, ok := (*g.aircraftMarkers)[v.AircraftType]; ok {
+		// 	// use marker that matches aircraft type if found
+		// 	aircraftMarker = (*g.aircraftMarkers)[v.AircraftType]
+		// } else {
+		// 	// default marker
+		// 	aircraftMarker = (*g.aircraftMarkers)["A388"]
+		// }
+		aircraftMarker = markers.GetAircraft(v.AircraftType, g.aircraftMarkers)
 
 		// determine where the marker will be drawn
 		aircraftX, aircraftY, err := g.slippymap.LatLongToPixel(v.Lat, v.Long)

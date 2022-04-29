@@ -110,6 +110,11 @@ var IATAtoICAO = map[string]string{
 	"SF3": "SF34",
 }
 
+// Colour object
+type RGBA struct {
+	r, g, b, a float64
+}
+
 // Marker object
 type Marker struct {
 	Img     *ebiten.Image
@@ -118,9 +123,28 @@ type Marker struct {
 	icao    string
 }
 
-// Colour object
-type RGBA struct {
-	r, g, b, a float64
+func GetAircraft(icao string, aircraftMarkers *map[string]Marker) (aircraftMarker Marker) { //*Marker {
+
+	// determine image
+	if _, ok := (*aircraftMarkers)[icao]; ok {
+		// use marker that matches aircraft type if found
+		aircraftMarker = (*aircraftMarkers)[icao]
+
+	} else {
+
+		switch icao {
+		// close matches
+		case "DH8C":
+			aircraftMarker = (*aircraftMarkers)["DH8D"]
+
+		// catch-all
+		default:
+			aircraftMarker = (*aircraftMarkers)["B77L"]
+		}
+	}
+
+	return aircraftMarker
+
 }
 
 func InitMarkers() (imgs map[string]Marker, err error) {
