@@ -155,7 +155,7 @@ func (g *Game) Draw(screen *ebiten.Image) {
 	// currently we order based on ICAO
 	// TODO: change order based on altitude
 	aircraftMap := g.aircraftDb.GetAircraft()
-	aircraftIcaos := make([]int, len(aircraftMap)) //, 0, len(aircraftMap))
+	aircraftIcaos := make([]int, 0, len(aircraftMap))
 	for k := range aircraftMap {
 		aircraftIcaos = append(aircraftIcaos, k)
 	}
