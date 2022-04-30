@@ -126,8 +126,27 @@ type Marker struct {
 }
 
 func (m *Marker) PointInsideMarker(x, y float64) bool {
-	p := []float64{x, y}
-	pip := piper.Pip(p, m.poly)
+
+	var pip bool
+
+	points := make([][]float64, 0, 9)
+
+	// make a 3x3 around the point to make this function a bit less "pixel perfect"
+	points = append(points, []float64{x - 1, y - 1})
+	points = append(points, []float64{x, y - 1})
+	points = append(points, []float64{x + 1, y - 1})
+
+	points = append(points, []float64{x - 1, y})
+	points = append(points, []float64{x, y})
+	points = append(points, []float64{x + 1, y})
+
+	points = append(points, []float64{x - 1, y + 1})
+	points = append(points, []float64{x, y + 1})
+	points = append(points, []float64{x + 1, y + 1})
+
+	for _, p := range points {
+		pip = piper.Pip(p, m.poly) || pip
+	}
 	return pip
 }
 
