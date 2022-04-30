@@ -133,7 +133,14 @@ func GetAircraft(icao string, aircraftMarkers *map[string]Marker) (aircraftMarke
 	} else {
 
 		switch icao {
+
 		// close matches
+		case "B772":
+			aircraftMarker = (*aircraftMarkers)["B77L"]
+
+		case "B773":
+			aircraftMarker = (*aircraftMarkers)["B77W"]
+
 		case "DH8C":
 			aircraftMarker = (*aircraftMarkers)["DH8D"]
 
