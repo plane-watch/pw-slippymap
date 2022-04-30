@@ -174,7 +174,7 @@ func (sm *SlippyMap) Update(forceUpdate bool) {
 			// sm.need_draw = true
 			// 	ebiten.ScheduleFrame()
 			// }
-			sm.need_draw = sm.need_update
+			sm.need_draw = sm.need_update || forceUpdate
 
 			// if tile is out of bounds, remove it from slice
 			if sm.isOutOfBounds((*t).offsetX, (*t).offsetY) {

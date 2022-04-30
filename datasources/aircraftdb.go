@@ -2,10 +2,7 @@ package datasources
 
 import (
 	_ "embed"
-	"encoding/json"
 	"fmt"
-	"reflect"
-	"strconv"
 
 	"log"
 	"sync"
@@ -17,43 +14,6 @@ import (
 const (
 	FORGET_AIRCRAFT_AFTER_SECONDS = 60
 )
-
-//go:embed readsb_json/aircrafts.json
-var readsbAircraftsJSONBlob []byte // format: {"icao":["registration","type","flags"],...}
-
-var readsbAircraftsJSON map[int]readsbAircraft
-
-type readsbAircraft struct {
-	registration string
-	aircraftType string
-	// flags        int
-}
-
-//go:embed readsb_json/dbversion.json
-var readsbDBVersionJSONBlob []byte
-
-//go:embed readsb_json/operators.json
-var readsbDBOperatorsJSONBlob []byte // format: {"id":["name","country","radio"],...}
-
-//go:embed readsb_json/types.json
-var readsbDBTypesJSONBlob []byte // format: {"type":["model","species","wtc"],
-
-func init() {
-
-	// ensure the embedded JSON is valid
-	if !json.Valid(readsbAircraftsJSONBlob) {
-		log.Fatal("Embedded aircrafts.json is invalid")
-	}
-	if !json.Valid(readsbDBVersionJSONBlob) {
-		log.Fatal("Embedded dbversion.json is invalid")
-	}
-	if !json.Valid(readsbDBOperatorsJSONBlob) {
-		log.Fatal("Embedded operators.json is invalid")
-	}
-	if !json.Valid(readsbDBTypesJSONBlob) {
-		log.Fatal("Embedded types.json is invalid")
-	}
-}
 
 type Aircraft struct {
 	Callsign     string
@@ -93,7 +53,7 @@ func (adb *AircraftDB) newAircraft(icao int) {
 	adb.Mutex.Unlock()
 	if !icaoInDB {
 
-		aircraftType := readsbAircraftsJSON[icao].aircraftType
+		aircraftType := readsbAircraft[icao].aircraftType
 
 		logmsg := fmt.Sprintf("AircraftDB[%6X]: Now recieving", icao)
 		if aircraftType != "" {
@@ -197,47 +157,5 @@ func NewAircraftDB(idleTimeout int64) *AircraftDB {
 }
 
 func GetReadsbDBVersion() int {
-	data := make(map[string]interface{})
-	err := json.Unmarshal(readsbDBVersionJSONBlob, &data)
-	if err != nil {
-		log.Fatal(err)
-	}
-	return int(data["version"].(float64))
-}
-
-func BuildReadsbAircraftsJSON(wg *sync.WaitGroup) {
-	wg.Add(1)
-	log.Println("Processing aircraft.json")
-
-	readsbAircraftsJSON = make(map[int]readsbAircraft)
-
-	data := make(map[string]interface{})
-	err := json.Unmarshal(readsbAircraftsJSONBlob, &data)
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	// pull information from JSON
-	for k, v := range data {
-
-		// get icao
-		icao64, err := strconv.ParseInt(k, 16, 64)
-		if err != nil {
-			log.Fatal(err)
-		}
-		icao := int(icao64)
-
-		// sanity checks
-		if reflect.TypeOf(v).Kind() != reflect.Slice {
-			log.Fatal("aircraft.json: JSON data not type of slice")
-		}
-		vr := reflect.ValueOf(v)
-
-		readsbAircraftsJSON[icao] = readsbAircraft{
-			registration: vr.Index(0).Elem().String(),
-			aircraftType: vr.Index(1).Elem().String(),
-		}
-	}
-	log.Println("Finished processing aircraft.json")
-	wg.Done()
+	return readsbDBVersion
 }

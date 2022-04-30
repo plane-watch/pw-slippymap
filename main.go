@@ -10,7 +10,6 @@ import (
 	"pw_slippymap/slippymap"
 	"pw_slippymap/userinput"
 	"sort"
-	"sync"
 
 	"github.com/akamensky/argparse"
 	"github.com/hajimehoshi/ebiten/v2"
@@ -397,10 +396,6 @@ func main() {
 	// process the command line
 	conf := processCommandLine()
 
-	// process readsb json files
-	var startupWg sync.WaitGroup
-	go datasources.BuildReadsbAircraftsJSON(&startupWg)
-
 	// init aircraftdb
 	adb := datasources.NewAircraftDB(60)
 	log.Printf("readsb database version: %d", datasources.GetReadsbDBVersion())
@@ -427,9 +422,6 @@ func main() {
 
 	// initialise map: initialise the new slippymap
 	sm := slippymap.NewSlippyMap(windowWidth, windowHeight, INIT_ZOOM_LEVEL, INIT_CENTRE_LAT, INIT_CENTRE_LONG, tileProvider)
-
-	// wait for all parallel startup jobs
-	startupWg.Wait()
 
 	// if readsb aircraft.db datasource has been specified, initialise it
 	if conf.readsbAircraftProtobufUrl != "" {
