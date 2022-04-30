@@ -6,6 +6,7 @@ import (
 	"sync"
 
 	"github.com/hajimehoshi/ebiten/v2"
+	"github.com/iwpnd/piper"
 )
 
 type aircraftMarker struct {
@@ -121,6 +122,13 @@ type Marker struct {
 	CentreX float64
 	CentreY float64
 	icao    string
+	poly    [][][]float64
+}
+
+func (m *Marker) PointInsideMarker(x, y float64) bool {
+	p := []float64{x, y}
+	pip := piper.Pip(p, m.poly)
+	return pip
 }
 
 func GetAircraft(icao string, aircraftMarkers *map[string]Marker) (aircraftMarker Marker) { //*Marker {
@@ -208,7 +216,7 @@ func InitMarkers() (imgs map[string]Marker, err error) {
 				offsetY:      1,
 			}
 
-			img, err := imgFromSVG(r)
+			img, poly, err := imgFromSVG(r)
 			if err != nil {
 				log.Fatal(err)
 			}
@@ -217,6 +225,7 @@ func InitMarkers() (imgs map[string]Marker, err error) {
 				CentreX: float64(img.Bounds().Dx()) / 2,
 				CentreY: float64(img.Bounds().Dy()) / 2,
 				icao:    k,
+				poly:    poly,
 			}
 		}(k, v)
 	}

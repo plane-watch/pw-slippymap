@@ -145,6 +145,10 @@ func (g *Game) Update() error {
 
 func (g *Game) Draw(screen *ebiten.Image) {
 
+	mouseOverMarkerText := "No marker"
+
+	mouseX, mouseY := ebiten.CursorPosition()
+
 	// draw map
 	g.slippymap.Draw(screen)
 
@@ -196,6 +200,20 @@ func (g *Game) Draw(screen *ebiten.Image) {
 
 			// draw it
 			screen.DrawImage(aircraftMarker.Img, aircraftDrawOpts)
+
+			// work out if mouse is over plane
+			topLeftX := -aircraftMarker.CentreX + float64(aircraftX)
+			topLeftY := -aircraftMarker.CentreY + float64(aircraftY)
+			btmRightX := topLeftX + float64(aircraftMarker.Img.Bounds().Max.X)
+			btmRightY := topLeftY + float64(aircraftMarker.Img.Bounds().Max.Y)
+
+			if mouseX >= int(topLeftX) && mouseX <= int(btmRightX) {
+				if mouseY >= int(topLeftY) && mouseY <= int(btmRightY) {
+					if aircraftMarker.PointInsideMarker(float64(mouseX)-topLeftX, float64(mouseY)-topLeftY) {
+						mouseOverMarkerText = aircraftMap[k].Callsign
+					}
+				}
+			}
 		}
 	}
 	// end draw planes =======================================================
@@ -211,7 +229,7 @@ func (g *Game) Draw(screen *ebiten.Image) {
 	ebitenutil.DebugPrintAt(screen, "© OpenStreetMap", windowX-96, windowY-18)
 
 	// debugging: darken area with debug text
-	darkArea := ebiten.NewImage(windowWidth, 100)
+	darkArea := ebiten.NewImage(windowWidth, 115)
 	darkArea.Fill(color.Black)
 	darkAreaDio := &ebiten.DrawImageOptions{}
 	darkAreaDio.ColorM.Scale(1, 1, 1, 0.65)
@@ -221,7 +239,6 @@ func (g *Game) Draw(screen *ebiten.Image) {
 	ebitenutil.DebugPrintAt(screen, fmt.Sprintf("TPS: %0.2f  FPS: %0.2f", ebiten.CurrentTPS(), ebiten.CurrentFPS()), 0, 0)
 
 	// debugging: show mouse position
-	mouseX, mouseY := ebiten.CursorPosition()
 	dbgMousePosTxt := fmt.Sprintf("Mouse position: %d, %d\n", mouseX, mouseY)
 	ebitenutil.DebugPrintAt(screen, dbgMousePosTxt, 0, 15)
 
@@ -250,6 +267,10 @@ func (g *Game) Draw(screen *ebiten.Image) {
 	// debugging: show number of tiles
 	dbgNumTilesText := fmt.Sprintf("Tiles rendered: %d", g.slippymap.GetNumTiles())
 	ebitenutil.DebugPrintAt(screen, dbgNumTilesText, 0, 75)
+
+	// debugging: show number of tiles
+	dbgMouseOverMarkerText := fmt.Sprintf("Mouse over marker: %s", mouseOverMarkerText)
+	ebitenutil.DebugPrintAt(screen, dbgMouseOverMarkerText, 0, 90)
 
 	// draw aircraft (TESTING)
 	m := (*g.aircraftMarkers)["A388"]

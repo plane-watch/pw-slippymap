@@ -28,7 +28,7 @@ func TestRenderSVG(t *testing.T) {
 			offsetY:      1,
 		}
 
-		_, err := imgFromSVG(r)
+		_, _, err := imgFromSVG(r)
 		require.NoError(t, err)
 	}
 }

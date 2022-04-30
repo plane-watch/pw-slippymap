@@ -57,13 +57,15 @@ var (
 
 // SVG struct to assist with building the vector.Path
 type SVG struct {
-	x, y               float64     // the current x/y coordinates of the "pen"
-	startx, starty     float64     // the initial x/y coordinates of the "pen"
-	offsetX, offsetY   float64     // the offset x/y coordinates
-	maxx, maxy         float64     // maximum x & y
-	currentPathCommand int         // the current SVG command
-	scale              float64     // the scale factor. Points from SVG are multiplied by this figure
-	dc                 *gg.Context // the drawing context
+	x, y               float64       // the current x/y coordinates of the "pen"
+	startx, starty     float64       // the initial x/y coordinates of the "pen"
+	offsetX, offsetY   float64       // the offset x/y coordinates
+	maxx, maxy         float64       // maximum x & y
+	currentPathCommand int           // the current SVG command
+	scale              float64       // the scale factor. Points from SVG are multiplied by this figure
+	dc                 *gg.Context   // the drawing context
+	poly               [][][]float64 // polygon representing the object (for determining if clicked)
+	ring               [][]float64   // ring (for adding to poly)
 }
 
 type renderSVG struct {
@@ -84,6 +86,11 @@ func (svg *SVG) updateMaxXY(x, y float64) {
 	if y > svg.maxy {
 		svg.maxy = y
 	}
+}
+
+func (svg *SVG) updateRing(x, y float64) {
+	p := []float64{x, y}
+	svg.ring = append(svg.ring, p)
 }
 
 func (svg *SVG) moveTo(d string, dx bool) (remaining_d string, err error) {
@@ -132,7 +139,11 @@ func (svg *SVG) moveTo(d string, dx bool) (remaining_d string, err error) {
 	svg.startx = x
 	svg.starty = y
 
+	// update max x,y
 	svg.updateMaxXY(x, y)
+
+	// update ring
+	svg.updateRing(x, y)
 
 	// return
 	return d, nil
@@ -145,6 +156,15 @@ func (svg *SVG) closePath() {
 	svg.y = svg.starty
 	// fmt.Println("ClosePath")
 	svg.dc.LineTo(svg.startx, svg.starty)
+
+	// update ring
+	svg.updateRing(svg.x, svg.y)
+
+	// update poly
+	svg.poly = append(svg.poly, svg.ring)
+
+	// prepare ring
+	svg.ring = make([][]float64, 0)
 }
 
 func (svg *SVG) lineTo(d string, dx bool) (remaining_d string, err error) {
@@ -191,6 +211,9 @@ func (svg *SVG) lineTo(d string, dx bool) (remaining_d string, err error) {
 
 	svg.updateMaxXY(x, y)
 
+	// update ring
+	svg.updateRing(x, y)
+
 	// return
 	return d, nil
 }
@@ -227,6 +250,9 @@ func (svg *SVG) vertLineTo(d string, dx bool) (remaining_d string, err error) {
 
 	svg.updateMaxXY(svg.x, y)
 
+	// update ring
+	svg.updateRing(svg.x, y)
+
 	// return
 	return d, nil
 }
@@ -262,6 +288,9 @@ func (svg *SVG) horizLineTo(d string, dx bool) (remaining_d string, err error) {
 	svg.x = x
 
 	svg.updateMaxXY(x, svg.y)
+
+	// update ring
+	svg.updateRing(x, svg.y)
 
 	// return
 	return d, nil
@@ -360,6 +389,9 @@ func (svg *SVG) cubicTo(d string, dx bool) (remaining_d string, err error) {
 
 	svg.updateMaxXY(x, y)
 
+	// update ring
+	svg.updateRing(x, y)
+
 	// return
 	return d, nil
 }
@@ -401,7 +433,7 @@ func consumeNumber(d string) (numberFound bool, number float64, remainingD strin
 	return false, 0, d, nil
 }
 
-func imgFromSVG(r renderSVG) (img *ebiten.Image, err error) {
+func imgFromSVG(r renderSVG) (img *ebiten.Image, poly [][][]float64, err error) {
 	// Returns a drawing context from SVG path data
 	// d: SVG path data (string) as-per: https://developer.mozilla.org/en-US/docs/Web/SVG/Attribute/d
 	// scale: SVG coordinates are multiplied by scale (float32)
@@ -423,6 +455,8 @@ func imgFromSVG(r renderSVG) (img *ebiten.Image, err error) {
 		currentPathCommand: SVG_PATH_CMD_None,
 		scale:              r.scale,
 		dc:                 gg.NewContext(500, 500),
+		poly:               make([][][]float64, 0),
+		ring:               make([][]float64, 0),
 	}
 
 	// fill the background if required
@@ -443,7 +477,7 @@ func imgFromSVG(r renderSVG) (img *ebiten.Image, err error) {
 		var err error
 		commandFound, commandStr, r.d, err = consumeCommand(r.d)
 		if err != nil {
-			return ebiten.NewImage(1, 1), err
+			return ebiten.NewImage(1, 1), make([][][]float64, 0), err
 		}
 		if commandFound {
 			// fmt.Println(commandStr)
@@ -487,7 +521,7 @@ func imgFromSVG(r renderSVG) (img *ebiten.Image, err error) {
 			case "Z", "z":
 				svg.currentPathCommand = SVG_PATH_CMD_ClosePath
 			default:
-				return ebiten.NewImage(1, 1), errors.New("Unknown SVG command")
+				return ebiten.NewImage(1, 1), make([][][]float64, 0), errors.New("Unknown SVG command")
 			}
 		}
 
@@ -519,10 +553,10 @@ func imgFromSVG(r renderSVG) (img *ebiten.Image, err error) {
 			svg.closePath()
 		default:
 			// fmt.Println(svg.currentPathCommand)
-			return ebiten.NewImage(1, 1), errors.New("SVG error")
+			return ebiten.NewImage(1, 1), make([][][]float64, 0), errors.New("SVG error")
 		}
 		if err != nil {
-			return ebiten.NewImage(1, 1), err
+			return ebiten.NewImage(1, 1), make([][][]float64, 0), err
 		}
 	}
 
@@ -545,5 +579,5 @@ func imgFromSVG(r renderSVG) (img *ebiten.Image, err error) {
 	img.DrawImage(newImg, nil)
 
 	// return!
-	return img, nil
+	return img, svg.poly, nil
 }
