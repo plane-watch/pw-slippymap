@@ -105,7 +105,8 @@ func (sm *SlippyMap) Draw(screen *ebiten.Image) {
 			dio.GeoM.Translate(float64((*t).offsetX), float64((*t).offsetY))
 
 			// adjust transparency (for fade-in of tiles)
-			dio.ColorM.Scale(1, 1, 1, (*t).alpha)
+			// dio.ColorM.Scale(1, 1, 1, (*t).alpha)
+			dio.ColorM.Scale(1, 1, 1, 1)
 
 			// draw the tile
 			t.imgMutex.Lock()
@@ -166,13 +167,14 @@ func (sm *SlippyMap) Update(forceUpdate bool) {
 			sm.need_update = sm.makeNeighbourTile(DIRECTION_EAST, t) || sm.need_update
 			sm.need_update = sm.makeNeighbourTile(DIRECTION_WEST, t) || sm.need_update
 
-			// increase alpha channel (for fade in, if needed)
-			if (*t).alpha < 1 {
-				(*t).alpha = (*t).alpha + TILE_FADEIN_ALPHA_PER_TICK
-				sm.need_update = true
-				sm.need_draw = true
-				ebiten.ScheduleFrame()
-			}
+			// // increase alpha channel (for fade in, if needed)
+			// if (*t).alpha < 1 {
+			// 	(*t).alpha = (*t).alpha + TILE_FADEIN_ALPHA_PER_TICK
+			// 	sm.need_update = true
+			// sm.need_draw = true
+			// 	ebiten.ScheduleFrame()
+			// }
+			sm.need_draw = sm.need_update
 
 			// if tile is out of bounds, remove it from slice
 			if sm.isOutOfBounds((*t).offsetX, (*t).offsetY) {
