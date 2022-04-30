@@ -201,14 +201,14 @@ func (g *Game) Draw(screen *ebiten.Image) {
 			// draw it
 			screen.DrawImage(aircraftMarker.Img, aircraftDrawOpts)
 
-			// work out if mouse is over plane
+			// work out if mouse is over marker image
 			topLeftX := -aircraftMarker.CentreX + float64(aircraftX)
 			topLeftY := -aircraftMarker.CentreY + float64(aircraftY)
 			btmRightX := topLeftX + float64(aircraftMarker.Img.Bounds().Max.X)
 			btmRightY := topLeftY + float64(aircraftMarker.Img.Bounds().Max.Y)
-
 			if mouseX >= int(topLeftX) && mouseX <= int(btmRightX) {
 				if mouseY >= int(topLeftY) && mouseY <= int(btmRightY) {
+					// if it is, determine if it is inside the shape
 					if aircraftMarker.PointInsideMarker(float64(mouseX)-topLeftX, float64(mouseY)-topLeftY) {
 						mouseOverMarkerText = aircraftMap[k].Callsign
 					}
