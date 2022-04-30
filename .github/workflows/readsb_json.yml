@@ -36,6 +36,15 @@ jobs:
         curl -o ./datasources/readsb_json/aircrafts.json https://raw.githubusercontent.com/Mictronics/readsb-protobuf/dev/webapp/src/db/aircrafts.json
         curl -o ./datasources/readsb_json/operators.json https://raw.githubusercontent.com/Mictronics/readsb-protobuf/dev/webapp/src/db/operators.json
         curl -o ./datasources/readsb_json/types.json https://raw.githubusercontent.com/Mictronics/readsb-protobuf/dev/webapp/src/db/types.json
+
+    - name: Convert readsb JSON to Golang
+      if: steps.check-changes.outputs.add_and_commit == 'true'
+      run: |
+        set x
+        pushd ./datasources/readsb_json
+        go run readsbjson2gostruct.go -p "datasources" -o ../readsb_json_data.go
+        popd
+        gofmt -w ./datasources/readsb_json_data.go
     
     - name: Add and commit
       if: steps.check-changes.outputs.add_and_commit == 'true'
@@ -43,5 +52,6 @@ jobs:
         git config user.name github-actions
         git config user.email github-actions@github.com
         git add ./datasources/readsb_json/*.json
+        git add ./datasources/readsb_json_data.go
         git commit -m "update of readsb json files"
         git push

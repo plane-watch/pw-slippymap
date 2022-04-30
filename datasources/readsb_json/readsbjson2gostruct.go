@@ -56,6 +56,8 @@ func main() {
 
 	conf := processCommandLine()
 
+	log.Println("Started.")
+
 	// open output file
 	f, err := os.Create(*conf.outputFile)
 	check(err)
@@ -73,12 +75,12 @@ func main() {
 	check(err)
 
 	// write dbversion.json as golang
-	dbVersionTxt := fmt.Sprintf("var Version int = %d\n\n", int(dbVersion["version"].(float64)))
+	dbVersionTxt := fmt.Sprintf("var readsbDBVersion int = %d\n\n", int(dbVersion["version"].(float64)))
 	_, err = f.WriteString(dbVersionTxt)
 	check(err)
 
 	// write readsbAircraft struct
-	_, err = f.WriteString(`type aircraftEntry struct {
+	_, err = f.WriteString(`type readsbAircraftEntry struct {
 		registration string
 		aircraftType string
 		// flags        int
@@ -88,7 +90,7 @@ func main() {
 	check(err)
 
 	// write var
-	_, err = f.WriteString("var Aircraft = map[int]aircraftEntry{\n")
+	_, err = f.WriteString("var readsbAircraft = map[int]readsbAircraftEntry{\n")
 	check(err)
 
 	// read aircraft.json
@@ -131,6 +133,8 @@ func main() {
 		check(err)
 	}
 
-	_, err = f.WriteString("}\n\n")
+	_, err = f.WriteString("}\n")
 	check(err)
+
+	log.Println("Done.")
 }
