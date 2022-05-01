@@ -2,7 +2,6 @@ package datasources
 
 import (
 	"log"
-	"sync"
 	"testing"
 	"time"
 
@@ -10,10 +9,6 @@ import (
 )
 
 func TestAircraftDB(t *testing.T) {
-
-	var wg sync.WaitGroup
-	BuildReadsbAircraftsJSON(&wg)
-	wg.Wait()
 
 	assert.IsType(t, int(1), GetReadsbDBVersion())
 

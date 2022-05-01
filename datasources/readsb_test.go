@@ -1,17 +1,12 @@
 package datasources
 
 import (
-	"sync"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
 )
 
 func TestReadsbProtobuf(t *testing.T) {
-
-	var wg sync.WaitGroup
-	BuildReadsbAircraftsJSON(&wg)
-	wg.Wait()
 
 	assert.IsType(t, int(1), GetReadsbDBVersion())
 
