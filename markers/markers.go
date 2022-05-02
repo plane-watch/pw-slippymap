@@ -157,30 +157,52 @@ func GetAircraft(icao string, aircraftMarkers *map[string]Marker) (aircraftMarke
 		switch icao {
 
 		// close matches
+		case "A321":
+			aircraftMarker = (*aircraftMarkers)["A320"]
+		case "A332":
+			aircraftMarker = (*aircraftMarkers)["A320"]
+		case "A333":
+			aircraftMarker = (*aircraftMarkers)["A320"]
 		case "A359":
 			aircraftMarker = (*aircraftMarkers)["A320"]
-
 		case "A35K":
 			aircraftMarker = (*aircraftMarkers)["A320"]
-
+		case "AT75":
+			aircraftMarker = (*aircraftMarkers)["SF34"]
 		case "B772":
 			aircraftMarker = (*aircraftMarkers)["B77L"]
-
 		case "B773":
 			aircraftMarker = (*aircraftMarkers)["B77W"]
-
+		case "BE20":
+			aircraftMarker = (*aircraftMarkers)["SW3"]
+		case "BE36":
+			aircraftMarker = (*aircraftMarkers)["PC12"]
+		case "BE76":
+			aircraftMarker = (*aircraftMarkers)["SF34"]
+		case "BL8":
+			aircraftMarker = (*aircraftMarkers)["RV9"]
+		case "BT36":
+			aircraftMarker = (*aircraftMarkers)["PC12"]
 		case "BE55":
 			aircraftMarker = (*aircraftMarkers)["SW3"]
-
 		case "C208":
 			aircraftMarker = (*aircraftMarkers)["RV9"]
-
 		case "C210":
 			aircraftMarker = (*aircraftMarkers)["RV9"]
-
 		case "COL4":
 			aircraftMarker = (*aircraftMarkers)["RV9"]
-
+		case "C172":
+			aircraftMarker = (*aircraftMarkers)["RV9"]
+		case "C185":
+			aircraftMarker = (*aircraftMarkers)["RV9"]
+		case "C402":
+			aircraftMarker = (*aircraftMarkers)["SF34"]
+		case "C441":
+			aircraftMarker = (*aircraftMarkers)["SF34"]
+		case "C550":
+			aircraftMarker = (*aircraftMarkers)["E190"]
+		case "CT4":
+			aircraftMarker = (*aircraftMarkers)["RV9"]
 		case "DH8C":
 			aircraftMarker = (*aircraftMarkers)["DH8D"]
 
