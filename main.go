@@ -86,7 +86,7 @@ func (g *Game) Update() error {
 			log.Print("Cannot zoom")
 		} else {
 			// if no error getting mouse cursor lat/long, then do the zoom operation
-			var newsm slippymap.SlippyMap
+			var newsm *slippymap.SlippyMap
 			var err error
 			if dy > 0 {
 				newsm, err = g.slippymap.ZoomIn(ctLat, ctLong)
@@ -98,7 +98,7 @@ func (g *Game) Update() error {
 			if err != nil {
 				log.Print("Error zooming")
 			} else {
-				g.slippymap = &newsm
+				g.slippymap = newsm
 			}
 		}
 	} else {
@@ -113,13 +113,13 @@ func (g *Game) Update() error {
 	forceUpdate := false
 	if inpututil.IsMouseButtonJustPressed(ebiten.MouseButtonLeft) {
 		s := userinput.NewStroke(&userinput.MouseStrokeSource{})
-		s.SetDraggingObject(*g.slippymap)
+		s.SetDraggingObject(g.slippymap)
 		g.strokes[s] = struct{}{}
 	}
 	g.touchIDs = inpututil.AppendJustPressedTouchIDs(g.touchIDs[:0])
 	for _, id := range g.touchIDs {
 		s := userinput.NewStroke(&userinput.TouchStrokeSource{id})
-		s.SetDraggingObject(*g.slippymap)
+		s.SetDraggingObject(g.slippymap)
 		g.strokes[s] = struct{}{}
 	}
 	for s := range g.strokes {
@@ -269,72 +269,72 @@ func (g *Game) Draw(screen *ebiten.Image) {
 
 	// draw aircraft (TESTING)
 	m := (*g.aircraftMarkers)["A388"]
-	do := m.MarkerDrawOpts(dbgMarkerRotateAngle, 203, 5)
+	do := m.MarkerDrawOpts(dbgMarkerRotateAngle, 203, 25)
 	screen.DrawImage(m.Img, &do)
 	ebitenutil.DebugPrintAt(screen, "A388", 203, 40)
 
 	m = (*g.aircraftMarkers)["F100"]
-	do = m.MarkerDrawOpts(dbgMarkerRotateAngle, 257, 5)
+	do = m.MarkerDrawOpts(dbgMarkerRotateAngle, 257, 25)
 	screen.DrawImage(m.Img, &do)
 	ebitenutil.DebugPrintAt(screen, "F100", 257, 40)
 
 	m = (*g.aircraftMarkers)["PC12"]
-	do = m.MarkerDrawOpts(dbgMarkerRotateAngle, 300, 5)
+	do = m.MarkerDrawOpts(dbgMarkerRotateAngle, 300, 25)
 	screen.DrawImage(m.Img, &do)
 	ebitenutil.DebugPrintAt(screen, "PC12", 300, 40)
 
 	m = (*g.aircraftMarkers)["SF34"]
-	do = m.MarkerDrawOpts(dbgMarkerRotateAngle, 350, 5)
+	do = m.MarkerDrawOpts(dbgMarkerRotateAngle, 350, 25)
 	screen.DrawImage(m.Img, &do)
 	ebitenutil.DebugPrintAt(screen, "SF34", 350, 40)
 
 	m = (*g.aircraftMarkers)["E190"]
-	do = m.MarkerDrawOpts(dbgMarkerRotateAngle, 400, 5)
+	do = m.MarkerDrawOpts(dbgMarkerRotateAngle, 400, 25)
 	screen.DrawImage(m.Img, &do)
 	ebitenutil.DebugPrintAt(screen, "E190", 400, 40)
 
 	m = (*g.aircraftMarkers)["DH8D"]
-	do = m.MarkerDrawOpts(dbgMarkerRotateAngle, 450, 5)
+	do = m.MarkerDrawOpts(dbgMarkerRotateAngle, 450, 25)
 	screen.DrawImage(m.Img, &do)
 	ebitenutil.DebugPrintAt(screen, "DH8D", 450, 40)
 
 	m = (*g.aircraftMarkers)["A320"]
-	do = m.MarkerDrawOpts(dbgMarkerRotateAngle, 500, 5)
+	do = m.MarkerDrawOpts(dbgMarkerRotateAngle, 500, 25)
 	screen.DrawImage(m.Img, &do)
 	ebitenutil.DebugPrintAt(screen, "A320", 500, 40)
 
 	m = (*g.aircraftMarkers)["B738"]
-	do = m.MarkerDrawOpts(dbgMarkerRotateAngle, 550, 5)
+	do = m.MarkerDrawOpts(dbgMarkerRotateAngle, 550, 25)
 	screen.DrawImage(m.Img, &do)
 	ebitenutil.DebugPrintAt(screen, "B738", 550, 40)
 
 	m = (*g.aircraftMarkers)["B77W"]
-	do = m.MarkerDrawOpts(dbgMarkerRotateAngle, 600, 5)
+	do = m.MarkerDrawOpts(dbgMarkerRotateAngle, 600, 25)
 	screen.DrawImage(m.Img, &do)
 	ebitenutil.DebugPrintAt(screen, "B77W", 600, 40)
 
 	m = (*g.aircraftMarkers)["B77L"]
-	do = m.MarkerDrawOpts(dbgMarkerRotateAngle, 650, 5)
+	do = m.MarkerDrawOpts(dbgMarkerRotateAngle, 650, 25)
 	screen.DrawImage(m.Img, &do)
 	ebitenutil.DebugPrintAt(screen, "B77L", 650, 40)
 
 	m = (*g.aircraftMarkers)["HAWK"]
-	do = m.MarkerDrawOpts(dbgMarkerRotateAngle, 700, 5)
+	do = m.MarkerDrawOpts(dbgMarkerRotateAngle, 700, 25)
 	screen.DrawImage(m.Img, &do)
 	ebitenutil.DebugPrintAt(screen, "HAWK", 700, 40)
 
 	m = (*g.aircraftMarkers)["B788"]
-	do = m.MarkerDrawOpts(dbgMarkerRotateAngle, 750, 5)
+	do = m.MarkerDrawOpts(dbgMarkerRotateAngle, 750, 25)
 	screen.DrawImage(m.Img, &do)
 	ebitenutil.DebugPrintAt(screen, "B788", 750, 40)
 
 	m = (*g.aircraftMarkers)["RV9"]
-	do = m.MarkerDrawOpts(dbgMarkerRotateAngle, 800, 5)
+	do = m.MarkerDrawOpts(dbgMarkerRotateAngle, 800, 25)
 	screen.DrawImage(m.Img, &do)
 	ebitenutil.DebugPrintAt(screen, "RV9", 800, 40)
 
 	m = (*g.aircraftMarkers)["SW3"]
-	do = m.MarkerDrawOpts(dbgMarkerRotateAngle, 850, 5)
+	do = m.MarkerDrawOpts(dbgMarkerRotateAngle, 850, 25)
 	screen.DrawImage(m.Img, &do)
 	ebitenutil.DebugPrintAt(screen, "SW3", 850, 40)
 
@@ -437,7 +437,7 @@ func main() {
 
 	// prepare "game"
 	g := &Game{
-		slippymap:       &sm,
+		slippymap:       sm,
 		aircraftDb:      adb,
 		aircraftMarkers: &aircraftMarkers,
 		strokes:         map[*userinput.Stroke]struct{}{},
