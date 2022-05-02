@@ -22,6 +22,7 @@ I've seen the markers below in ADS-B traffic that I've received, so I will prior
 
 * B412
 
+* R182
 * DA42
 * DH8A
 * EC30
