@@ -315,5 +315,6 @@ func (m *Marker) MarkerDrawOpts(angleDegrees, xPos, yPos float64) (drawOpts ebit
 	drawOpts.GeoM.Rotate(slippymap.DegreesToRadians(angleDegrees))
 	drawOpts.GeoM.Translate(m.CentreX, m.CentreY)
 	drawOpts.GeoM.Translate(xPos, yPos)
+	drawOpts.Filter = ebiten.FilterLinear
 	return drawOpts
 }

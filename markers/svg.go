@@ -575,7 +575,7 @@ func imgFromSVG(r renderSVG) (img *ebiten.Image, poly [][][]float64, err error) 
 
 	// "crop" the image to its exact size
 	newImg := ebiten.NewImageFromImage(svg.dc.Image())
-	img = ebiten.NewImage(int(math.Ceil(svg.maxx)), int(math.Ceil(svg.maxy)))
+	img = ebiten.NewImage(int(math.Ceil(svg.maxx)+r.strokeWidth), int(math.Ceil(svg.maxy)+r.strokeWidth))
 	img.DrawImage(newImg, nil)
 
 	// return!

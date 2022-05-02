@@ -190,17 +190,11 @@ func (g *Game) Draw(screen *ebiten.Image) {
 			// plane is probably off the visible map, or not sending a position
 		} else {
 
-			// determine how the marker will be drawn
-			aircraftDrawOpts := &ebiten.DrawImageOptions{}
-			// move so centre of marker is at 0,0
-			aircraftDrawOpts.GeoM.Translate(-aircraftMarker.CentreX, -aircraftMarker.CentreY)
-			// rotate to match track
-			aircraftDrawOpts.GeoM.Rotate(slippymap.DegreesToRadians(float64(v.Track)))
-			// move to actual position
-			aircraftDrawOpts.GeoM.Translate(float64(aircraftX), float64(aircraftY))
+			// prepare the draw options for the marker
+			aircraftDrawOpts := aircraftMarker.MarkerDrawOpts(float64(v.Track), float64(aircraftX), float64(aircraftY))
 
 			// draw it
-			screen.DrawImage(aircraftMarker.Img, aircraftDrawOpts)
+			screen.DrawImage(aircraftMarker.Img, &aircraftDrawOpts)
 
 			// work out if mouse is over marker image
 			topLeftX := -aircraftMarker.CentreX + float64(aircraftX)
