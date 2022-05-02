@@ -63,6 +63,17 @@ func ReadsbProtobuf(url string, adb *AircraftDB) {
 			adb.SetLastSeen(icao)
 		}
 
+		// Get aircraft history (for trails)
+		// TODO - aircraft.pb doesn't seem to have history, probably need history.pb...
+		// for _, h := range aircraftUpdate.GetHistory() {
+		// 	icao := int(h.GetAddr())
+		// 	lat := h.GetLat()
+		// 	long := h.GetLon()
+		// 	altBaro := h.GetAltBaro()
+		// 	fmt.Println(icao, lat, long, altBaro)
+
+		// }
+
 		// Wait until next update
 		time.Sleep(time.Millisecond * READSB_UPDATE_FREQUENCY)
 	}
