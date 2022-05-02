@@ -18,14 +18,26 @@ Files in this folder are named as: `ICAO (Model)`, where ICAO and Model is the c
 
 ## Markers TODO
 
-* BE20
-* BL8
-* C172
-* CT4
+I've seen the markers below in ADS-B traffic that I've received, so I will prioritise creating these...
+
+* B412
+
+* DA42
 * DH8A
+* EC30
 * EC35
 * F70
+* G115
 * GA8
+* K100
+* M20P
+* PA31
+* PA46
 * PC21
+* PC24
 * R22
+* R44
+* SLG2
+* SONX
+* SR22
 * SW4
