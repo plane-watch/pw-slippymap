@@ -313,7 +313,7 @@ func InitMarkers() (imgs map[string]Marker, err error) {
 func (m *Marker) MarkerDrawOpts(angleDegrees, xPos, yPos float64) (drawOpts ebiten.DrawImageOptions) {
 	drawOpts.GeoM.Translate(-m.CentreX, -m.CentreY)
 	drawOpts.GeoM.Rotate(slippymap.DegreesToRadians(angleDegrees))
-	drawOpts.GeoM.Translate(m.CentreX, m.CentreY)
+	// drawOpts.GeoM.Translate(m.CentreX, m.CentreY)
 	drawOpts.GeoM.Translate(xPos, yPos)
 	drawOpts.Filter = ebiten.FilterLinear
 	return drawOpts
