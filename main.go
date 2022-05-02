@@ -36,11 +36,10 @@ var (
 	// Debugging
 	dbgMouseOverTileText string
 	dbgMouseLatLongText  string
+	dbgMarkerRotateAngle float64
 
 	// Map of markers (key = ICAO code), ref: https://en.wikipedia.org/wiki/List_of_aircraft_type_designators
 	markerImages map[string]markers.Marker
-
-	dbgMarkerRotateAngle float64
 )
 
 type Game struct {
@@ -57,6 +56,9 @@ type Game struct {
 
 	// markers
 	aircraftMarkers *map[string]markers.Marker
+
+	// aircraft indicators
+	indicatorAirspeed markers.IndicatorAirspeed
 }
 
 func (g *Game) updateStroke(stroke *userinput.Stroke) {
@@ -446,6 +448,8 @@ func main() {
 		aircraftMarkers: &aircraftMarkers,
 		strokes:         map[*userinput.Stroke]struct{}{},
 	}
+
+	g.indicatorAirspeed = markers.InitIndicatorAirspeed()
 
 	// In FPSModeVsyncOffMinimum, the game's Update and Draw are called only when
 	// 1) new inputting is detected, or 2) ScheduleFrame is called.
