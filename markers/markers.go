@@ -15,6 +15,9 @@ type marker struct {
 	scale   float64
 }
 
+// Missing aircraft markers
+var missingMarkers []string
+
 // map key (and the order of the map) is ICAO
 
 // ref: https://www.icao.int/publications/doc8643/pages/search.aspx
@@ -184,6 +187,18 @@ func GetAircraft(icao string, aircraftMarkers *map[string]Marker) (aircraftMarke
 		// catch-all
 		default:
 			aircraftMarker = (*aircraftMarkers)["B77L"]
+
+			exists := false
+			for _, item := range missingMarkers {
+				if item == icao {
+					exists = true
+				}
+			}
+			if !exists {
+				missingMarkers = append(missingMarkers, icao)
+				log.Printf("Missing marker for aircraft type: %s", icao)
+			}
+
 		}
 	}
 

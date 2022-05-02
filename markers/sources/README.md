@@ -15,4 +15,17 @@ Files in this folder are named as: `ICAO (Model)`, where ICAO and Model is the c
   * Go to Edit > XML Editor.
   * Find the XML `svg:path` elements.
   * Copy/paste the `d` value.
-  * If any values are scientific notation (eg: `-1e-9`), these must be manually removed and swapped out with `0` for now...
+
+## Markers TODO
+
+* BE20
+* BL8
+* C172
+* CT4
+* DH8A
+* EC35
+* F70
+* GA8
+* PC21
+* R22
+* SW4

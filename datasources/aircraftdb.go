@@ -2,9 +2,7 @@ package datasources
 
 import (
 	_ "embed"
-	"fmt"
 
-	"log"
 	"sync"
 	"time"
 
@@ -55,14 +53,13 @@ func (adb *AircraftDB) newAircraft(icao int) {
 
 		aircraftType := readsbAircraft[icao].aircraftType
 
-		logmsg := fmt.Sprintf("AircraftDB[%6X]: Now recieving", icao)
-		if aircraftType != "" {
-			logmsg = fmt.Sprintf("%s, type: %s", logmsg, aircraftType)
-		} else {
-			logmsg = fmt.Sprintf("%s, type unknown", logmsg)
-		}
-
-		log.Println(logmsg)
+		// logmsg := fmt.Sprintf("AircraftDB[%6X]: Now recieving", icao)
+		// if aircraftType != "" {
+		// 	logmsg = fmt.Sprintf("%s, type: %s", logmsg, aircraftType)
+		// } else {
+		// 	logmsg = fmt.Sprintf("%s, type unknown", logmsg)
+		// }
+		// log.Println(logmsg)
 
 		adb.Mutex.Lock()
 		defer adb.Mutex.Unlock()
@@ -137,7 +134,7 @@ func (adb *AircraftDB) forgetter() {
 
 		// forget entries with LastUpdated older than adb.idleTimeout
 		if time.Now().Unix() > adb.Aircraft[k].LastUpdated+adb.idleTimeout {
-			log.Printf("AircraftDB[%X]: Forgetting inactive aircraft", k)
+			// log.Printf("AircraftDB[%X]: Forgetting inactive aircraft", k)
 			defer delete(adb.Aircraft, k)
 		}
 	}
