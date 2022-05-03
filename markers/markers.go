@@ -21,6 +21,7 @@ type marker struct {
 var (
 	// Colour gradient for altitude
 	altitudeColourGrad colorgrad.Gradient
+	AltitudeScale      *ebiten.Image
 
 	// Missing aircraft markers
 	missingMarkers []string
@@ -373,6 +374,36 @@ func AltitudeToColour(alt float64) (r, g, b float64) {
 	return r, g, b
 }
 
+func makeAltitudeScale() (img *ebiten.Image) {
+	w := 600
+	h := 10
+	fw := float64(w)
+
+	img = ebiten.NewImage(w, h)
+	for x := 0; x < w; x++ {
+		col := altitudeColourGrad.At(float64(x) / fw)
+		for y := 0; y < h; y++ {
+			img.Set(x, y, col)
+		}
+	}
+
+	return img
+}
+
+func makeAltitudeColourGrad() colorgrad.Gradient {
+	grad, err := colorgrad.NewGradient().
+		HtmlColors("gold", "hotpink", "darkturquoise").
+		Build()
+	if err != nil {
+		log.Fatal(err)
+	}
+	return grad
+}
+
 func init() {
-	altitudeColourGrad = colorgrad.Sinebow()
+	// make colour gradient for altitude colours
+	altitudeColourGrad = makeAltitudeColourGrad()
+
+	// make altitude scale image
+	AltitudeScale = makeAltitudeScale()
 }

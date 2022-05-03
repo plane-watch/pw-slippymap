@@ -240,8 +240,14 @@ func (g *Game) Draw(screen *ebiten.Image) {
 	}
 	// end draw planes =======================================================
 
-	// osm attribution
 	windowX, windowY := g.slippymap.GetSize()
+
+	// altitude scale
+	altitudeScaleDio := &ebiten.DrawImageOptions{}
+	altitudeScaleDio.GeoM.Translate((float64(windowX)/2)-(float64(markers.AltitudeScale.Bounds().Max.X)/2), float64(windowY)-float64(markers.AltitudeScale.Bounds().Max.Y))
+	screen.DrawImage(markers.AltitudeScale, altitudeScaleDio)
+
+	// osm attribution
 	attributionArea := ebiten.NewImage(100, 20)
 	attributionArea.Fill(color.Black)
 	attributionAreaDio := &ebiten.DrawImageOptions{}
