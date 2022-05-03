@@ -7,6 +7,7 @@ require (
 	github.com/fogleman/gg v1.3.0
 	github.com/hajimehoshi/ebiten/v2 v2.3.1
 	github.com/iwpnd/piper v0.1.0
+	github.com/mazznoer/colorgrad v0.8.1
 	github.com/stretchr/testify v1.7.1
 	google.golang.org/protobuf v1.28.0
 )
@@ -17,6 +18,8 @@ require (
 	github.com/gofrs/flock v0.8.1 // indirect
 	github.com/golang/freetype v0.0.0-20170609003504-e2365dfdc4a0 // indirect
 	github.com/jezek/xgb v1.0.0 // indirect
+	github.com/lucasb-eyer/go-colorful v1.0.3 // indirect
+	github.com/mazznoer/csscolorparser v0.1.0 // indirect
 	github.com/pmezard/go-difflib v1.0.0 // indirect
 	golang.org/x/exp v0.0.0-20190731235908-ec7cb31e5a56 // indirect
 	golang.org/x/image v0.0.0-20220321031419-a8550c1d254a // indirect

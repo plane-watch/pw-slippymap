@@ -7,6 +7,7 @@ import (
 
 	"github.com/hajimehoshi/ebiten/v2"
 	"github.com/iwpnd/piper"
+	"github.com/mazznoer/colorgrad"
 )
 
 type marker struct {
@@ -17,8 +18,13 @@ type marker struct {
 	centreOffsetY float64
 }
 
-// Missing aircraft markers
-var missingMarkers []string
+var (
+	// Colour gradient for altitude
+	altitudeColourGrad colorgrad.Gradient
+
+	// Missing aircraft markers
+	missingMarkers []string
+)
 
 // map key (and the order of the map) is ICAO
 
@@ -339,4 +345,34 @@ func (m *Marker) MarkerDrawOpts(angleDegrees, xPos, yPos float64) (drawOpts ebit
 	drawOpts.GeoM.Translate(xPos, yPos)
 	drawOpts.Filter = ebiten.FilterLinear
 	return drawOpts
+}
+
+func AltitudeToColour(alt float64) (r, g, b float64) {
+
+	// define min/max altitudes
+	altMin := 0.0
+	altMax := 40000.0
+
+	// define min/max colour gradient
+	gradMin := 0.0
+	gradMax := 1.0
+
+	// honour max altitude
+	if alt > altMax {
+		alt = altMax
+	}
+
+	// perform a "map" (https://www.arduino.cc/reference/en/language/functions/math/map/)
+	// unsure what this is called in golang...
+	grad := (alt-altMin)*(gradMax-gradMin)/(altMax-altMin) + gradMin
+
+	r = altitudeColourGrad.At(grad).R
+	g = altitudeColourGrad.At(grad).G
+	b = altitudeColourGrad.At(grad).B
+
+	return r, g, b
+}
+
+func init() {
+	altitudeColourGrad = colorgrad.Sinebow()
 }

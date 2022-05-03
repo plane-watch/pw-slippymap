@@ -20,6 +20,7 @@ type Aircraft struct {
 	Track        int
 	LastUpdated  int64
 	AircraftType string
+	AltBaro      int
 }
 
 type AircraftDB struct {
@@ -40,6 +41,7 @@ func (adb *AircraftDB) GetAircraft() map[int]Aircraft {
 			Long:         v.Long,
 			Track:        v.Track,
 			AircraftType: v.AircraftType,
+			AltBaro:      v.AltBaro,
 		}
 	}
 	return output
@@ -110,6 +112,16 @@ func (adb *AircraftDB) SetTrack(icao int, track int) {
 		defer adb.Mutex.Unlock()
 		// log.Printf("AircraftDB[%X]: Updated track to: %d", icao, track)
 		adb.Aircraft[icao].Track = track
+	}
+}
+
+func (adb *AircraftDB) SetAltBaro(icao int, altBaro int) {
+	adb.newAircraft(icao)
+	if adb.Aircraft[icao].AltBaro != altBaro {
+		defer ebiten.ScheduleFrame()
+		adb.Mutex.Lock()
+		defer adb.Mutex.Unlock()
+		adb.Aircraft[icao].AltBaro = altBaro
 	}
 }
 

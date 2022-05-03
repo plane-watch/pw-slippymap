@@ -207,6 +207,19 @@ func (g *Game) Draw(screen *ebiten.Image) {
 			// prepare the draw options for the marker
 			aircraftDrawOpts := aircraftMarker.MarkerDrawOpts(float64(v.Track), float64(aircraftX), float64(aircraftY))
 
+			// get fill colour from altitude
+			r, g, b := markers.AltitudeToColour(float64(aircraftMap[k].AltBaro))
+
+			// invert colours
+			r = 1 - r
+			g = 1 - g
+			b = 1 - b
+
+			// apply fill
+			aircraftDrawOpts.ColorM.Invert()
+			aircraftDrawOpts.ColorM.Translate(r, g, b, 0)
+			aircraftDrawOpts.ColorM.Invert()
+
 			// draw it
 			screen.DrawImage(aircraftMarker.Img, &aircraftDrawOpts)
 
