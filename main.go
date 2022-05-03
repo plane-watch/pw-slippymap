@@ -71,6 +71,14 @@ func (g *Game) updateStroke(stroke *userinput.Stroke) {
 
 func (g *Game) Update() error {
 
+	// set slippymap size if window size changed
+	smW, smH := g.slippymap.GetSize()
+	wsW, wsH := ebiten.WindowSize()
+	if wsW != smW || wsH != smH {
+		newsm := g.slippymap.SetSize(wsW, wsH)
+		g.slippymap = newsm
+	}
+
 	// zoom: handle wheel
 	_, dy := ebiten.Wheel()
 
@@ -170,6 +178,12 @@ func (g *Game) Draw(screen *ebiten.Image) {
 	for _, k := range aircraftIcaos {
 
 		v := aircraftMap[k]
+
+		// skip planes that aren't sending a position
+		// TODO: what about planes actually at 0,0?
+		if v.Lat == 0 && v.Long == 0 {
+			continue
+		}
 
 		var aircraftMarker markers.Marker
 
@@ -346,12 +360,6 @@ func (g *Game) Draw(screen *ebiten.Image) {
 }
 
 func (g *Game) Layout(outsideWidth, outsideHeight int) (screenWidth, screenHeight int) {
-
-	// set slippymap size if window size changed
-	smW, smH := g.slippymap.GetSize()
-	if outsideWidth != smW || outsideHeight != smH {
-		g.slippymap.SetSize(outsideWidth, outsideHeight)
-	}
 
 	// WindowSize returns 0,0 in non-desktop environments (eg wasm). Only rely on it if
 	// the values aren't 0,0

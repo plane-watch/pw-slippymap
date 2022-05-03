@@ -26,7 +26,7 @@ const (
 	DIRECTION_EAST  = 4
 )
 
-type MapTile struct {
+type mapTile struct {
 
 	// OpenStreetMap tile identifier
 	osm OSMTileID
@@ -63,7 +63,7 @@ type SlippyMap struct {
 	needDraw      bool // do we need to process Draw()
 	needDrawMutex sync.Mutex
 
-	tiles      []*MapTile // map tiles
+	tiles      []*mapTile // map tiles
 	tilesMutex sync.Mutex // Mutex to avoid races
 
 	mapWidthPx   int // number of pixels wide
@@ -77,6 +77,7 @@ type SlippyMap struct {
 	offsetMinimumY int // minimum Y value for map tiles
 	offsetMaximumX int // maximum X value for map tiles
 	offsetMaximumY int // maximum Y value for map tiles
+	offsetMutex    sync.Mutex
 
 	tileProvider TileProvider // the tile provider for the slippymap
 
@@ -121,12 +122,12 @@ func (sm *SlippyMap) updateRequired(reset bool) bool {
 	return false
 }
 
-func (sm *SlippyMap) iterTiles() []*MapTile {
+func (sm *SlippyMap) iterTiles() []*mapTile {
 	// returns a list (slice) of tiles making up the slippymap at the time this function was run
 
 	sm.tilesMutex.Lock()
 	defer sm.tilesMutex.Unlock()
-	output := make([]*MapTile, len(sm.tiles))
+	output := make([]*mapTile, len(sm.tiles))
 	for i, t := range sm.tiles {
 		// t.imgMutex.Lock()
 		if t != nil {
@@ -151,7 +152,7 @@ func (sm *SlippyMap) tileExistsByOSM(osmX, osmY, zoomLevel int) bool {
 	return false
 }
 
-func (sm *SlippyMap) rmTile(tile *MapTile) {
+func (sm *SlippyMap) rmTile(tile *mapTile) {
 	// removes a tile from the slippymap
 
 	var tileFound bool
@@ -284,7 +285,7 @@ func (sm *SlippyMap) Update(forceUpdate bool) {
 	}
 }
 
-func (sm *SlippyMap) makeNeighbourTile(direction int, existingTile *MapTile) (tileCreated bool) {
+func (sm *SlippyMap) makeNeighbourTile(direction int, existingTile *mapTile) (tileCreated bool) {
 	// makes the tile to direction of existingTile, if it does not already exist or would be out of bounds
 
 	existingTile.offsetMutex.Lock()
@@ -345,6 +346,9 @@ func (sm *SlippyMap) isOutOfBounds(pixelX, pixelY int) (outOfBounds bool) {
 	// "out of bounds" means the point is outside the renderable size of the map
 	// which is defined by sm.offset[Minimum|Maximum][X|Y].
 
+	sm.offsetMutex.Lock()
+	defer sm.offsetMutex.Unlock()
+
 	if pixelX < sm.offsetMinimumX {
 		return true
 	}
@@ -370,7 +374,7 @@ func (sm *SlippyMap) makeTile(osmX, osmY, offsetX, offsetY int) {
 	}
 
 	// Create the tile object
-	t := &MapTile{
+	t := &mapTile{
 
 		// OpenStreetMap Tile Info
 		osm:                   osm,
@@ -387,7 +391,7 @@ func (sm *SlippyMap) makeTile(osmX, osmY, offsetX, offsetY int) {
 		img: ebiten.NewImage(TILE_WIDTH_PX, TILE_WIDTH_PX),
 	}
 
-	go func(t *MapTile, sm *SlippyMap) {
+	go func(t *mapTile, sm *SlippyMap) {
 
 		// get tile artwork
 		tilePath, err := sm.tileProvider.GetTileAddress(t.osm)
@@ -421,17 +425,23 @@ func (sm *SlippyMap) makeTile(osmX, osmY, offsetX, offsetY int) {
 	sm.scheduleDraw()
 }
 
-func (sm *SlippyMap) SetSize(mapWidthPx, mapHeightPx int) {
+func (sm *SlippyMap) SetSize(mapWidthPx, mapHeightPx int) (newsm *SlippyMap) {
 	// todo fix race
 	// updates the slippy map when window size is changed
-	sm.mapSizeMutex.Lock()
-	defer sm.mapSizeMutex.Unlock()
-	sm.mapWidthPx = mapWidthPx
-	sm.mapHeightPx = mapHeightPx
-	sm.offsetMinimumX = -(2 * TILE_WIDTH_PX)
-	sm.offsetMinimumY = -(2 * TILE_HEIGHT_PX)
-	sm.offsetMaximumX = mapWidthPx + (2 * TILE_WIDTH_PX)
-	sm.offsetMaximumY = mapHeightPx + (2 * TILE_HEIGHT_PX)
+
+	// get centre lat/long
+	centreLat, centreLong, err := sm.GetLatLongAtPixel(sm.mapWidthPx/2, sm.mapHeightPx/2)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	// prepare new slippymap
+	newsm = NewSlippyMap(mapWidthPx, mapHeightPx, sm.zoomLevel, centreLat, centreLong, sm.tileProvider)
+
+	// copy the current map image into the zoom previous level background image
+	sm.Draw(newsm.zoomPrevLevelImg)
+
+	return newsm
 }
 
 func (sm *SlippyMap) GetSize() (mapWidthPx, mapHeightPx int) {
@@ -575,10 +585,13 @@ func NewSlippyMap(
 		zoomPrevLevelImg: ebiten.NewImage(mapWidthPx, mapHeightPx), // initialise image of previous zoom level
 		zoomLevel:        zoomLevel,                                // set zoom level
 		tileProvider:     tileProvider,                             // set tile provider
+		mapWidthPx:       mapWidthPx,
+		mapHeightPx:      mapHeightPx,
+		offsetMinimumX:   -(2 * TILE_WIDTH_PX),
+		offsetMaximumX:   mapWidthPx + (2 * TILE_WIDTH_PX),
+		offsetMinimumY:   -(2 * TILE_HEIGHT_PX),
+		offsetMaximumY:   mapHeightPx + (2 * TILE_HEIGHT_PX),
 	}
-
-	// update size
-	sm.SetSize(mapWidthPx, mapHeightPx)
 
 	// initialise the map with a centre tile
 	sm.mapSizeMutex.Lock()
