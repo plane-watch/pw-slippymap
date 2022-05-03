@@ -5,7 +5,7 @@ go 1.17
 require (
 	github.com/akamensky/argparse v1.3.1
 	github.com/fogleman/gg v1.3.0
-	github.com/hajimehoshi/ebiten/v2 v2.3.0
+	github.com/hajimehoshi/ebiten/v2 v2.3.1
 	github.com/iwpnd/piper v0.1.0
 	github.com/stretchr/testify v1.7.1
 	google.golang.org/protobuf v1.28.0
