@@ -66,8 +66,9 @@ type SlippyMap struct {
 	tiles      []*MapTile // map tiles
 	tilesMutex sync.Mutex // Mutex to avoid races
 
-	mapWidthPx  int // number of pixels wide
-	mapHeightPx int // number of pixels high
+	mapWidthPx   int // number of pixels wide
+	mapHeightPx  int // number of pixels high
+	mapSizeMutex sync.Mutex
 
 	zoomLevel        int           // zoom level
 	zoomPrevLevelImg *ebiten.Image // holds the previous zoom level's image
@@ -185,7 +186,8 @@ func (sm *SlippyMap) GetNumTiles() (numTiles int) {
 	// returns the number of tiles making up the slippymap
 	sm.tilesMutex.Lock()
 	defer sm.tilesMutex.Unlock()
-	return len(sm.tiles)
+	output := len(sm.tiles)
+	return output
 }
 
 func (sm *SlippyMap) Draw(screen *ebiten.Image) {
@@ -420,7 +422,10 @@ func (sm *SlippyMap) makeTile(osmX, osmY, offsetX, offsetY int) {
 }
 
 func (sm *SlippyMap) SetSize(mapWidthPx, mapHeightPx int) {
+	// todo fix race
 	// updates the slippy map when window size is changed
+	sm.mapSizeMutex.Lock()
+	defer sm.mapSizeMutex.Unlock()
 	sm.mapWidthPx = mapWidthPx
 	sm.mapHeightPx = mapHeightPx
 	sm.offsetMinimumX = -(2 * TILE_WIDTH_PX)
@@ -431,6 +436,8 @@ func (sm *SlippyMap) SetSize(mapWidthPx, mapHeightPx int) {
 
 func (sm *SlippyMap) GetSize() (mapWidthPx, mapHeightPx int) {
 	// return the slippymap size in pixels
+	sm.mapSizeMutex.Lock()
+	defer sm.mapSizeMutex.Unlock()
 	return sm.mapWidthPx, sm.mapHeightPx
 }
 
@@ -541,7 +548,9 @@ func (sm *SlippyMap) SetZoomLevel(zoomLevel int, lat_deg, long_deg float64) (new
 	}
 
 	// create a new slippymap centred on the requested lat/long, at the requested zoom level
+	sm.mapSizeMutex.Lock()
 	newsm = NewSlippyMap(sm.mapWidthPx, sm.mapHeightPx, zoomLevel, lat_deg, long_deg, sm.tileProvider)
+	sm.mapSizeMutex.Unlock()
 
 	// copy the current map image into the zoom previous level background image
 	sm.Draw(newsm.zoomPrevLevelImg)
@@ -572,8 +581,10 @@ func NewSlippyMap(
 	sm.SetSize(mapWidthPx, mapHeightPx)
 
 	// initialise the map with a centre tile
+	sm.mapSizeMutex.Lock()
 	centreTileOffsetX := (mapWidthPx / 2) - int(pixelOffsetX)
 	centreTileOffsetY := (mapHeightPx / 2) - int(pixelOffsetY)
+	sm.mapSizeMutex.Unlock()
 	sm.makeTile(centreTileOSMX, centreTileOSMY, centreTileOffsetX, centreTileOffsetY)
 
 	// force initial update

@@ -1,8 +1,11 @@
+//go:build !race
+
 package slippymap
 
 import (
 	"math"
 	"testing"
+	"time"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -23,7 +26,7 @@ func TestSlippyMap(t *testing.T) {
 	// declare variables
 	var (
 		tileProvider TileProvider
-		smInitial    SlippyMap
+		smInitial    *SlippyMap
 		err          error
 	)
 
@@ -93,8 +96,9 @@ func TestSlippyMap(t *testing.T) {
 	})
 
 	// test SetSize
-	t.Run("Test GetSize", func(t *testing.T) {
+	t.Run("Test SetSize", func(t *testing.T) {
 		smInitial.SetSize(SLIPPYMAP_WIDTH+500, SLIPPYMAP_HEIGHT+500)
+		time.Sleep(time.Second)
 		mapWidthPx, mapHeightPx := smInitial.GetSize()
 		assert.Equal(t, SLIPPYMAP_WIDTH+500, mapWidthPx, "GetSize returned unexpected width after SetSize")
 		assert.Equal(t, SLIPPYMAP_HEIGHT+500, mapHeightPx, "GetSize returned unexpected height after SetSize")
