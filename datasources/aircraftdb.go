@@ -21,6 +21,8 @@ type Aircraft struct {
 	LastUpdated  int64
 	AircraftType string
 	AltBaro      int
+	Category     int
+	GroundSpeed  int
 }
 
 type AircraftDB struct {
@@ -42,6 +44,8 @@ func (adb *AircraftDB) GetAircraft() map[int]Aircraft {
 			Track:        v.Track,
 			AircraftType: v.AircraftType,
 			AltBaro:      v.AltBaro,
+			Category:     v.Category,
+			GroundSpeed:  v.GroundSpeed,
 		}
 	}
 	return output
@@ -122,6 +126,26 @@ func (adb *AircraftDB) SetAltBaro(icao int, altBaro int) {
 		adb.Mutex.Lock()
 		defer adb.Mutex.Unlock()
 		adb.Aircraft[icao].AltBaro = altBaro
+	}
+}
+
+func (adb *AircraftDB) SetCategory(icao int, category int) {
+	adb.newAircraft(icao)
+	if adb.Aircraft[icao].Category != category {
+		defer ebiten.ScheduleFrame()
+		adb.Mutex.Lock()
+		defer adb.Mutex.Unlock()
+		adb.Aircraft[icao].Category = category
+	}
+}
+
+func (adb *AircraftDB) SetGs(icao int, gs int) {
+	adb.newAircraft(icao)
+	if adb.Aircraft[icao].GroundSpeed != gs {
+		defer ebiten.ScheduleFrame()
+		adb.Mutex.Lock()
+		defer adb.Mutex.Unlock()
+		adb.Aircraft[icao].GroundSpeed = gs
 	}
 }
 

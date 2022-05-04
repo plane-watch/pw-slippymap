@@ -35,7 +35,7 @@ var GroundVehicles = map[string]marker{
 	"4WD": {
 		name:    "Four Wheel Drive",
 		svgPath: "m 107.06055,3.5234375 c -12.956265,0 -37.960941,1.0234375 -37.960941,1.0234375 L 68.644531,3.6933594 h -5.908203 c -2.841286,1.5342937 -32.675656,18.9236196 -36.3125,23.1855466 -2.10255,2.38668 -13.353516,12.160712 -13.353516,73.759764 0,16.64993 0.339987,32.10576 3.294922,38.01563 l -2.382812,1.82226 v 3.375 c 0,0 -0.16082,2.73242 1.125,2.73242 v 14.14258 c -8.1970939,5.46473 -12.0527345,10.5292 -12.0527345,22.10156 l 12.2949215,-5.2246 v 131.95703 c -0.884,0.442 -0.884765,1.32617 -0.884765,1.32617 v 3.57617 l 2.652344,1.80859 c -5.519486,5.51949 -5.013672,42.6404 -5.013672,51.10743 0,9.0453 0.594561,31.54701 0.916015,33.15429 0.321457,1.60725 1.446032,2.57086 2.892578,2.97266 l 0.884766,2.16992 c 0,7.95602 2.489721,23.86769 5.382813,28.12695 l 2.089843,1.28711 c 0.562546,2.00909 6.912144,6.75 30.539063,6.75 v 16.07227 c 0,2.81272 0.240447,4.82227 4.580078,4.82227 h 29.011719 c 0,-10e-6 33.888839,-0.2129 36.349609,-0.2129 2.46077,0 4.39258,-1.77861 4.39258,-4.39257 v -16.625 c -0.0189,-3.63289 -1.17188,-4.17383 -1.17188,-4.17383 v -1.47656 h 6.97071 v 4.73437 c 0,1.89422 0.41669,2.00977 2.00781,2.00977 h 8.72266 l 0.48437,1.80273 h 6.72852 l 2.5625,-2.56055 c 23.62691,0 33.83979,-4.74091 34.40234,-6.75 l 2.08984,-1.28711 c 2.8931,-4.25926 5.38282,-20.17093 5.38282,-28.12695 l 0.88476,-2.16992 c 1.44655,-0.4018 2.57113,-1.36541 2.89258,-2.97266 0.32146,-1.60728 0.91601,-24.10898 0.91601,-33.15429 0,-8.46701 0.50582,-45.58795 -5.01367,-51.10743 l 2.65235,-1.80859 v -3.57617 c 0,0 -7.7e-4,-0.88416 -0.88477,-1.32617 V 177.60352 l 12.29492,5.2246 c 0,-11.57238 -3.85564,-16.63681 -12.05273,-22.10156 v -14.14258 c 1.28583,0 1.125,-2.73242 1.125,-2.73242 v -3.375 l -2.38281,-1.82226 c 2.95493,-5.90987 3.29492,-21.3657 3.29492,-38.01563 0,-61.599052 -11.25097,-71.373083 -13.35352,-73.759764 C 184.05847,22.616979 154.2241,5.2276509 151.38281,3.6933594 h -5.9082 l -0.45508,0.8535156 c 0,0 -25.00272,-1.0234375 -37.95898,-1.0234375 z",
-		scale:   0.065,
+		scale:   0.05,
 	},
 }
 
@@ -168,101 +168,102 @@ func (m *Marker) PointInsideMarker(x, y float64) bool {
 	return pip
 }
 
-func GetAircraft(icao string, aircraftMarkers *map[string]Marker) (aircraftMarker Marker) { //*Marker {
+func GetMarker(name string, markers *map[string]Marker) (marker Marker) { //*Marker {
 
 	// determine image
-	if _, ok := (*aircraftMarkers)[icao]; ok {
+	if _, ok := (*markers)[name]; ok {
 		// use marker that matches aircraft type if found
-		aircraftMarker = (*aircraftMarkers)[icao]
+		marker = (*markers)[name]
 
 	} else {
 
-		switch icao {
+		switch name {
 
 		// close matches
 		case "A321":
-			aircraftMarker = (*aircraftMarkers)["A320"]
+			marker = (*markers)["A320"]
 		case "A332":
-			aircraftMarker = (*aircraftMarkers)["A320"]
+			marker = (*markers)["A320"]
 		case "A333":
-			aircraftMarker = (*aircraftMarkers)["A320"]
+			marker = (*markers)["A320"]
 		case "A359":
-			aircraftMarker = (*aircraftMarkers)["A320"]
+			marker = (*markers)["A320"]
 		case "A35K":
-			aircraftMarker = (*aircraftMarkers)["A320"]
+			marker = (*markers)["A320"]
 		case "AT75":
-			aircraftMarker = (*aircraftMarkers)["SF34"]
+			marker = (*markers)["SF34"]
 		case "B772":
-			aircraftMarker = (*aircraftMarkers)["B77L"]
+			marker = (*markers)["B77L"]
 		case "B773":
-			aircraftMarker = (*aircraftMarkers)["B77W"]
+			marker = (*markers)["B77W"]
 		case "BE20":
-			aircraftMarker = (*aircraftMarkers)["SW3"]
+			marker = (*markers)["SW3"]
 		case "BE36":
-			aircraftMarker = (*aircraftMarkers)["PC12"]
+			marker = (*markers)["PC12"]
 		case "BE76":
-			aircraftMarker = (*aircraftMarkers)["SF34"]
+			marker = (*markers)["SF34"]
 		case "BL8":
-			aircraftMarker = (*aircraftMarkers)["RV9"]
+			marker = (*markers)["RV9"]
 		case "BT36":
-			aircraftMarker = (*aircraftMarkers)["PC12"]
+			marker = (*markers)["PC12"]
 		case "BE55":
-			aircraftMarker = (*aircraftMarkers)["SW3"]
+			marker = (*markers)["SW3"]
 		case "C208":
-			aircraftMarker = (*aircraftMarkers)["RV9"]
+			marker = (*markers)["RV9"]
 		case "C210":
-			aircraftMarker = (*aircraftMarkers)["RV9"]
+			marker = (*markers)["RV9"]
 		case "COL4":
-			aircraftMarker = (*aircraftMarkers)["RV9"]
+			marker = (*markers)["RV9"]
 		case "C172":
-			aircraftMarker = (*aircraftMarkers)["RV9"]
+			marker = (*markers)["RV9"]
 		case "C185":
-			aircraftMarker = (*aircraftMarkers)["RV9"]
+			marker = (*markers)["RV9"]
 		case "C402":
-			aircraftMarker = (*aircraftMarkers)["SF34"]
+			marker = (*markers)["SF34"]
 		case "C441":
-			aircraftMarker = (*aircraftMarkers)["SF34"]
+			marker = (*markers)["SF34"]
 		case "C550":
-			aircraftMarker = (*aircraftMarkers)["E190"]
+			marker = (*markers)["E190"]
 		case "CT4":
-			aircraftMarker = (*aircraftMarkers)["RV9"]
+			marker = (*markers)["RV9"]
 		case "DH8A":
-			aircraftMarker = (*aircraftMarkers)["DH8D"]
+			marker = (*markers)["DH8D"]
 		case "DH8C":
-			aircraftMarker = (*aircraftMarkers)["DH8D"]
+			marker = (*markers)["DH8D"]
 		case "F70":
-			aircraftMarker = (*aircraftMarkers)["F100"]
+			marker = (*markers)["F100"]
 		case "PA44":
-			aircraftMarker = (*aircraftMarkers)["SF34"]
+			marker = (*markers)["SF34"]
 		case "PC21":
-			aircraftMarker = (*aircraftMarkers)["PC12"]
+			marker = (*markers)["PC12"]
 		case "R22":
-			aircraftMarker = (*aircraftMarkers)["B412"]
+			marker = (*markers)["B412"]
 		case "RV12":
-			aircraftMarker = (*aircraftMarkers)["RV9"]
+			marker = (*markers)["RV9"]
 		case "SR22":
-			aircraftMarker = (*aircraftMarkers)["RV9"]
+			marker = (*markers)["RV9"]
 
 		// catch-all
 		default:
-			aircraftMarker = (*aircraftMarkers)["B77L"]
+			marker = (*markers)["B77L"]
 
 			exists := false
 			for _, item := range missingMarkers {
-				if item == icao {
+				if item == name {
 					exists = true
 				}
 			}
 			if !exists {
-				missingMarkers = append(missingMarkers, icao)
-				log.Printf("Missing marker for aircraft type: %s", icao)
+				if name != "" {
+					missingMarkers = append(missingMarkers, name)
+					log.Printf("Missing marker for type: %s", name)
+				}
 			}
 
 		}
 	}
 
-	return aircraftMarker
-
+	return marker
 }
 
 func renderMarker(k string, v marker, wg *sync.WaitGroup, c chan Marker) {
@@ -335,7 +336,6 @@ func InitMarkers(markers map[string]marker) (imgs map[string]Marker, err error) 
 	}
 
 	wgInner.Wait()
-	log.Println("Pre-rendering finished, building Marker map")
 
 	// Read markers out of channel, into object to be returned
 	for elem := range c {
@@ -359,26 +359,37 @@ func (m *Marker) MarkerDrawOpts(angleDegrees, xPos, yPos float64) (drawOpts ebit
 
 func AltitudeToColour(alt float64) (r, g, b float64) {
 
-	// define min/max altitudes
-	altMin := 0.0
-	altMax := 40000.0
+	if alt <= 0 {
+		// if the plane/vehicle is on the ground
 
-	// define min/max colour gradient
-	gradMin := 0.0
-	gradMax := 1.0
+		r = 0
+		g = 0.4
+		b = 0.2
 
-	// honour max altitude
-	if alt > altMax {
-		alt = altMax
+	} else {
+		// if the plane is in the air, map colour to altitude gradient
+
+		// define min/max altitudes
+		altMin := 0.0
+		altMax := 40000.0
+
+		// define min/max colour gradient
+		gradMin := 0.0
+		gradMax := 1.0
+
+		// honour max altitude
+		if alt > altMax {
+			alt = altMax
+		}
+
+		// perform a "map" (https://www.arduino.cc/reference/en/language/functions/math/map/)
+		// unsure what this is called in golang...
+		grad := (alt-altMin)*(gradMax-gradMin)/(altMax-altMin) + gradMin
+
+		r = altitudeColourGrad.At(grad).R
+		g = altitudeColourGrad.At(grad).G
+		b = altitudeColourGrad.At(grad).B
 	}
-
-	// perform a "map" (https://www.arduino.cc/reference/en/language/functions/math/map/)
-	// unsure what this is called in golang...
-	grad := (alt-altMin)*(gradMax-gradMin)/(altMax-altMin) + gradMin
-
-	r = altitudeColourGrad.At(grad).R
-	g = altitudeColourGrad.At(grad).G
-	b = altitudeColourGrad.At(grad).B
 
 	return r, g, b
 }

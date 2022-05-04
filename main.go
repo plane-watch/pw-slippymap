@@ -175,8 +175,6 @@ func (g *Game) Draw(screen *ebiten.Image) {
 	// for each plane we know about
 	for _, k := range aircraftIcaos {
 
-		// TODO: hide ground vehicles unless zoom level 13+
-
 		v := aircraftMap[k]
 
 		// skip planes that aren't sending a position
@@ -187,15 +185,26 @@ func (g *Game) Draw(screen *ebiten.Image) {
 
 		var aircraftMarker markers.Marker
 
-		// determine image
-		// if _, ok := (*g.aircraftMarkers)[v.AircraftType]; ok {
-		// 	// use marker that matches aircraft type if found
-		// 	aircraftMarker = (*g.aircraftMarkers)[v.AircraftType]
-		// } else {
-		// 	// default marker
-		// 	aircraftMarker = (*g.aircraftMarkers)["A388"]
-		// }
-		aircraftMarker = markers.GetAircraft(v.AircraftType, g.aircraftMarkers)
+		// determine marker based on category (https://wiki.jetvision.de/wiki/Radarcape:Software_Features#Aircraft_categories)
+		switch v.Category {
+		case 0xC1, 0xC2:
+
+			// don't draw ground vehicles if zoom level less than 13
+			if g.slippymap.GetZoomLevel() < 13 {
+				continue
+			}
+
+			aircraftMarker = markers.GetMarker("4WD", g.groundVehicleMarkers)
+
+		default:
+
+			// don't draw aircraft on ground if "idle" on ground unless zoom level is less than 13
+			if g.slippymap.GetZoomLevel() < 13 && v.GroundSpeed < 30 {
+				continue
+			}
+
+			aircraftMarker = markers.GetMarker(v.AircraftType, g.aircraftMarkers)
+		}
 
 		// determine where the marker will be drawn
 		aircraftX, aircraftY, err := g.slippymap.LatLongToPixel(v.Lat, v.Long)
@@ -232,7 +241,7 @@ func (g *Game) Draw(screen *ebiten.Image) {
 				if mouseY >= int(topLeftY) && mouseY <= int(btmRightY) {
 					// if it is, determine if it is inside the shape
 					if aircraftMarker.PointInsideMarker(float64(mouseX)-topLeftX, float64(mouseY)-topLeftY) {
-						mouseOverMarkerText = fmt.Sprintf("%X: %s (%s)", k, v.Callsign, v.AircraftType)
+						mouseOverMarkerText = fmt.Sprintf("ICAO: %X, Callsign: %s, Type: %s, Category: %X, Alt: %d, Gs: %d", k, v.Callsign, v.AircraftType, v.Category, v.AltBaro, v.GroundSpeed)
 					}
 				}
 			}
