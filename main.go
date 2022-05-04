@@ -37,9 +37,6 @@ var (
 	dbgMouseOverTileText string
 	dbgMouseLatLongText  string
 	dbgMarkerRotateAngle float64
-
-	// Map of markers (key = ICAO code), ref: https://en.wikipedia.org/wiki/List_of_aircraft_type_designators
-	markerImages map[string]markers.Marker
 )
 
 type Game struct {
@@ -55,7 +52,8 @@ type Game struct {
 	aircraftDb *datasources.AircraftDB
 
 	// markers
-	aircraftMarkers *map[string]markers.Marker
+	aircraftMarkers      *map[string]markers.Marker
+	groundVehicleMarkers *map[string]markers.Marker
 
 	// aircraft indicators
 	indicatorAirspeed markers.IndicatorAirspeed
@@ -234,7 +232,7 @@ func (g *Game) Draw(screen *ebiten.Image) {
 				if mouseY >= int(topLeftY) && mouseY <= int(btmRightY) {
 					// if it is, determine if it is inside the shape
 					if aircraftMarker.PointInsideMarker(float64(mouseX)-topLeftX, float64(mouseY)-topLeftY) {
-						mouseOverMarkerText = aircraftMap[k].Callsign
+						mouseOverMarkerText = fmt.Sprintf("%X: %s (%s)", k, v.Callsign, v.AircraftType)
 					}
 				}
 			}
@@ -378,6 +376,11 @@ func (g *Game) Draw(screen *ebiten.Image) {
 	screen.DrawImage(m.Img, &do)
 	ebitenutil.DebugPrintAt(screen, "B412", 900, 40)
 
+	m = (*g.groundVehicleMarkers)["4WD"]
+	do = m.MarkerDrawOpts(dbgMarkerRotateAngle, 950, 25)
+	screen.DrawImage(m.Img, &do)
+	ebitenutil.DebugPrintAt(screen, "4WD", 950, 40)
+
 }
 
 func (g *Game) Layout(outsideWidth, outsideHeight int) (screenWidth, screenHeight int) {
@@ -441,7 +444,9 @@ func main() {
 	log.Printf("readsb database version: %d", datasources.GetReadsbDBVersion())
 
 	// load sprites
-	aircraftMarkers, err := markers.InitMarkers()
+	aircraftMarkers, err := markers.InitMarkers(markers.Aircraft)
+	failFatally(err)
+	groundVehicleMarkers, err := markers.InitMarkers(markers.GroundVehicles)
 	failFatally(err)
 
 	// determine starting window size
@@ -471,10 +476,11 @@ func main() {
 
 	// prepare "game"
 	g := &Game{
-		slippymap:       sm,
-		aircraftDb:      adb,
-		aircraftMarkers: &aircraftMarkers,
-		strokes:         map[*userinput.Stroke]struct{}{},
+		slippymap:            sm,
+		aircraftDb:           adb,
+		aircraftMarkers:      &aircraftMarkers,
+		groundVehicleMarkers: &groundVehicleMarkers,
+		strokes:              map[*userinput.Stroke]struct{}{},
 	}
 
 	g.indicatorAirspeed = markers.InitIndicatorAirspeed()

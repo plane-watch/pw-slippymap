@@ -31,6 +31,14 @@ var (
 
 // ref: https://www.icao.int/publications/doc8643/pages/search.aspx
 
+var GroundVehicles = map[string]marker{
+	"4WD": {
+		name:    "Four Wheel Drive",
+		svgPath: "m 107.06055,3.5234375 c -12.956265,0 -37.960941,1.0234375 -37.960941,1.0234375 L 68.644531,3.6933594 h -5.908203 c -2.841286,1.5342937 -32.675656,18.9236196 -36.3125,23.1855466 -2.10255,2.38668 -13.353516,12.160712 -13.353516,73.759764 0,16.64993 0.339987,32.10576 3.294922,38.01563 l -2.382812,1.82226 v 3.375 c 0,0 -0.16082,2.73242 1.125,2.73242 v 14.14258 c -8.1970939,5.46473 -12.0527345,10.5292 -12.0527345,22.10156 l 12.2949215,-5.2246 v 131.95703 c -0.884,0.442 -0.884765,1.32617 -0.884765,1.32617 v 3.57617 l 2.652344,1.80859 c -5.519486,5.51949 -5.013672,42.6404 -5.013672,51.10743 0,9.0453 0.594561,31.54701 0.916015,33.15429 0.321457,1.60725 1.446032,2.57086 2.892578,2.97266 l 0.884766,2.16992 c 0,7.95602 2.489721,23.86769 5.382813,28.12695 l 2.089843,1.28711 c 0.562546,2.00909 6.912144,6.75 30.539063,6.75 v 16.07227 c 0,2.81272 0.240447,4.82227 4.580078,4.82227 h 29.011719 c 0,-10e-6 33.888839,-0.2129 36.349609,-0.2129 2.46077,0 4.39258,-1.77861 4.39258,-4.39257 v -16.625 c -0.0189,-3.63289 -1.17188,-4.17383 -1.17188,-4.17383 v -1.47656 h 6.97071 v 4.73437 c 0,1.89422 0.41669,2.00977 2.00781,2.00977 h 8.72266 l 0.48437,1.80273 h 6.72852 l 2.5625,-2.56055 c 23.62691,0 33.83979,-4.74091 34.40234,-6.75 l 2.08984,-1.28711 c 2.8931,-4.25926 5.38282,-20.17093 5.38282,-28.12695 l 0.88476,-2.16992 c 1.44655,-0.4018 2.57113,-1.36541 2.89258,-2.97266 0.32146,-1.60728 0.91601,-24.10898 0.91601,-33.15429 0,-8.46701 0.50582,-45.58795 -5.01367,-51.10743 l 2.65235,-1.80859 v -3.57617 c 0,0 -7.7e-4,-0.88416 -0.88477,-1.32617 V 177.60352 l 12.29492,5.2246 c 0,-11.57238 -3.85564,-16.63681 -12.05273,-22.10156 v -14.14258 c 1.28583,0 1.125,-2.73242 1.125,-2.73242 v -3.375 l -2.38281,-1.82226 c 2.95493,-5.90987 3.29492,-21.3657 3.29492,-38.01563 0,-61.599052 -11.25097,-71.373083 -13.35352,-73.759764 C 184.05847,22.616979 154.2241,5.2276509 151.38281,3.6933594 h -5.9082 l -0.45508,0.8535156 c 0,0 -25.00272,-1.0234375 -37.95898,-1.0234375 z",
+		scale:   0.065,
+	},
+}
+
 var Aircraft = map[string]marker{
 	"A320": {
 		name:    "AIRBUS A-320",
@@ -131,7 +139,7 @@ type Marker struct {
 	Img     *ebiten.Image
 	CentreX float64
 	CentreY float64
-	icao    string
+	name    string
 	poly    [][][]float64
 }
 
@@ -257,13 +265,11 @@ func GetAircraft(icao string, aircraftMarkers *map[string]Marker) (aircraftMarke
 
 }
 
-func InitMarkers() (imgs map[string]Marker, err error) {
-	// Initialise all markers.
-	// Renders all SVGs to images.
-	// Produces a map of marker images.
+func renderMarker(k string, v marker, wg *sync.WaitGroup, c chan Marker) {
+	defer wg.Done()
+	log.Printf("Pre-rendering marker: %s (%s)", k, v.name)
 
 	var strokeColour, fillColour, bgColour RGBA
-	imgs = make(map[string]Marker)
 
 	// Set default colours
 	bgColour = RGBA{ // temp background colour.
@@ -285,44 +291,47 @@ func InitMarkers() (imgs map[string]Marker, err error) {
 		a: 1,
 	}
 
+	r := renderSVG{
+		scale:        v.scale,
+		d:            v.svgPath,
+		pathStroked:  true,
+		pathFilled:   true,
+		bgFilled:     false,
+		strokeWidth:  2,
+		strokeColour: strokeColour,
+		fillColour:   fillColour,
+		bgColour:     bgColour,
+		offsetX:      1,
+		offsetY:      1,
+	}
+
+	img, poly, err := imgFromSVG(r)
+	if err != nil {
+		log.Fatal(err)
+	}
+	c <- Marker{
+		Img:     img,
+		CentreX: (float64(img.Bounds().Dx()) / 2) + v.centreOffsetX,
+		CentreY: (float64(img.Bounds().Dy()) / 2) + v.centreOffsetY,
+		name:    k,
+		poly:    poly,
+	}
+}
+
+func InitMarkers(markers map[string]marker) (imgs map[string]Marker, err error) {
+	// Initialise markers.
+	// Renders all SVGs to images.
+	// Produces a map of marker images.
+
+	imgs = make(map[string]Marker)
+
 	var wgInner sync.WaitGroup
-	c := make(chan Marker, len(Aircraft))
+	c := make(chan Marker, len(markers))
 
 	// Pre-render aircraft concurrently
-	for k, v := range Aircraft {
-
+	for k, v := range markers {
 		wgInner.Add(1)
-
-		go func(k string, v marker) {
-			defer wgInner.Done()
-			log.Printf("Pre-rendering marker: %s (%s)", k, v.name)
-
-			r := renderSVG{
-				scale:        v.scale,
-				d:            v.svgPath,
-				pathStroked:  true,
-				pathFilled:   true,
-				bgFilled:     false,
-				strokeWidth:  2,
-				strokeColour: strokeColour,
-				fillColour:   fillColour,
-				bgColour:     bgColour,
-				offsetX:      1,
-				offsetY:      1,
-			}
-
-			img, poly, err := imgFromSVG(r)
-			if err != nil {
-				log.Fatal(err)
-			}
-			c <- Marker{
-				Img:     img,
-				CentreX: (float64(img.Bounds().Dx()) / 2) + v.centreOffsetX,
-				CentreY: (float64(img.Bounds().Dy()) / 2) + v.centreOffsetY,
-				icao:    k,
-				poly:    poly,
-			}
-		}(k, v)
+		go renderMarker(k, v, &wgInner, c)
 	}
 
 	wgInner.Wait()
@@ -330,7 +339,7 @@ func InitMarkers() (imgs map[string]Marker, err error) {
 
 	// Read markers out of channel, into object to be returned
 	for elem := range c {
-		imgs[elem.icao] = elem
+		imgs[elem.name] = elem
 		if len(c) == 0 {
 			break
 		}
