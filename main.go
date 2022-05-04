@@ -177,6 +177,8 @@ func (g *Game) Draw(screen *ebiten.Image) {
 	// for each plane we know about
 	for _, k := range aircraftIcaos {
 
+		// TODO: hide ground vehicles unless zoom level 13+
+
 		v := aircraftMap[k]
 
 		// skip planes that aren't sending a position
