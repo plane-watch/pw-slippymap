@@ -395,6 +395,11 @@ func (g *Game) Draw(screen *ebiten.Image) {
 	screen.DrawImage(m.Img, &do)
 	ebitenutil.DebugPrintAt(screen, "DA42", 1000, 40)
 
+	m = (*g.aircraftMarkers)["SONX"]
+	do = m.MarkerDrawOpts(dbgMarkerRotateAngle, 1050, 25)
+	screen.DrawImage(m.Img, &do)
+	ebitenutil.DebugPrintAt(screen, "SONX", 1050, 40)
+
 }
 
 func (g *Game) Layout(outsideWidth, outsideHeight int) (screenWidth, screenHeight int) {
