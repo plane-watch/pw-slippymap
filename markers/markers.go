@@ -1,13 +1,19 @@
 package markers
 
 import (
+	"fmt"
+	"image/color"
 	"log"
+	"pw_slippymap/resources"
 	"pw_slippymap/slippymap"
 	"sync"
 
 	"github.com/hajimehoshi/ebiten/v2"
+	"github.com/hajimehoshi/ebiten/v2/text"
 	"github.com/iwpnd/piper"
 	"github.com/mazznoer/colorgrad"
+	"golang.org/x/image/font"
+	"golang.org/x/image/font/opentype"
 )
 
 type marker struct {
@@ -25,6 +31,9 @@ var (
 
 	// Missing aircraft markers
 	missingMarkers []string
+
+	// colour for aircraft/vehicles on ground
+	ColourGround = color.RGBA{R: 0, G: 102, B: 51, A: 255}
 )
 
 // map key (and the order of the map) is ICAO
@@ -367,9 +376,9 @@ func AltitudeToColour(alt float64) (r, g, b float64) {
 	if alt <= 0 {
 		// if the plane/vehicle is on the ground
 
-		r = 0
-		g = 0.4
-		b = 0.2
+		r = float64(ColourGround.R) / 255
+		g = float64(ColourGround.G) / 255
+		b = float64(ColourGround.B) / 255
 
 	} else {
 		// if the plane is in the air, map colour to altitude gradient
@@ -400,17 +409,40 @@ func AltitudeToColour(alt float64) (r, g, b float64) {
 }
 
 func makeAltitudeScale() (img *ebiten.Image) {
+
 	w := 600
-	h := 10
+	h := 30
 	fw := float64(w)
 
+	gndSquare := ebiten.NewImage(10, 10)
+	gndSquare.Fill(ColourGround)
+	gndSquareDio := &ebiten.DrawImageOptions{}
+	gndSquareDio.GeoM.Translate(0, 20)
+
 	img = ebiten.NewImage(w, h)
-	for x := 0; x < w; x++ {
+	img.Fill(color.RGBA{R: 0, G: 0, B: 0, A: 128})
+	img.DrawImage(gndSquare, gndSquareDio)
+	for x := 10; x < w; x++ {
 		col := altitudeColourGrad.At(float64(x) / fw)
-		for y := 0; y < h; y++ {
+		for y := 20; y < h; y++ {
 			img.Set(x, y, col)
 		}
 	}
+
+	faceOpts := opentype.FaceOptions{
+		Size:    14,
+		DPI:     72,
+		Hinting: font.HintingNone,
+	}
+	ff, err := opentype.NewFace(resources.Fonts["B612-Regular"], &faceOpts)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	markerTxt := "0"
+	textRec := text.BoundString(ff, markerTxt)
+	fmt.Println(textRec)
+	text.Draw(img, markerTxt, ff, 5-(textRec.Max.X/2), textRec.Max.Y-textRec.Min.Y+2, color.White)
 
 	return img
 }
