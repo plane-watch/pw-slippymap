@@ -380,10 +380,10 @@ func (g *Game) Draw(screen *ebiten.Image) {
 	screen.DrawImage(m.Img, &do)
 	ebitenutil.DebugPrintAt(screen, "SW3", 850, 40)
 
-	m = (*g.aircraftMarkers)["B412"]
+	m = (*g.aircraftMarkers)["SW4"]
 	do = m.MarkerDrawOpts(dbgMarkerRotateAngle, 900, 25)
 	screen.DrawImage(m.Img, &do)
-	ebitenutil.DebugPrintAt(screen, "B412", 900, 40)
+	ebitenutil.DebugPrintAt(screen, "SW4", 900, 40)
 
 	m = (*g.groundVehicleMarkers)["4WD"]
 	do = m.MarkerDrawOpts(dbgMarkerRotateAngle, 950, 25)
@@ -404,6 +404,16 @@ func (g *Game) Draw(screen *ebiten.Image) {
 	do = m.MarkerDrawOpts(dbgMarkerRotateAngle, 1100, 25)
 	screen.DrawImage(m.Img, &do)
 	ebitenutil.DebugPrintAt(screen, "GLEX", 1100, 40)
+
+	m = (*g.aircraftMarkers)["H25B"]
+	do = m.MarkerDrawOpts(dbgMarkerRotateAngle, 1150, 25)
+	screen.DrawImage(m.Img, &do)
+	ebitenutil.DebugPrintAt(screen, "H25B", 1150, 40)
+
+	m = (*g.aircraftMarkers)["C182"]
+	do = m.MarkerDrawOpts(dbgMarkerRotateAngle, 1200, 25)
+	screen.DrawImage(m.Img, &do)
+	ebitenutil.DebugPrintAt(screen, "C182", 1200, 40)
 
 }
 
