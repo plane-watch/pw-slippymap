@@ -6,6 +6,8 @@ import (
 	"sync"
 	"time"
 
+	"pw_slippymap/datasources/readsb_protobuf"
+
 	"github.com/hajimehoshi/ebiten/v2"
 )
 
@@ -23,6 +25,7 @@ type Aircraft struct {
 	AltBaro      int
 	Category     int
 	GroundSpeed  int
+	AirGround    readsb_protobuf.AircraftMeta_AirGround
 }
 
 type AircraftDB struct {
@@ -46,6 +49,7 @@ func (adb *AircraftDB) GetAircraft() map[int]Aircraft {
 			AltBaro:      v.AltBaro,
 			Category:     v.Category,
 			GroundSpeed:  v.GroundSpeed,
+			AirGround:    v.AirGround,
 		}
 	}
 	return output
@@ -146,6 +150,16 @@ func (adb *AircraftDB) SetGs(icao int, gs int) {
 		adb.Mutex.Lock()
 		defer adb.Mutex.Unlock()
 		adb.Aircraft[icao].GroundSpeed = gs
+	}
+}
+
+func (adb *AircraftDB) SetAirGround(icao int, ag readsb_protobuf.AircraftMeta_AirGround) {
+	adb.newAircraft(icao)
+	if adb.Aircraft[icao].AirGround != ag {
+		defer ebiten.ScheduleFrame()
+		adb.Mutex.Lock()
+		defer adb.Mutex.Unlock()
+		adb.Aircraft[icao].AirGround = ag
 	}
 }
 

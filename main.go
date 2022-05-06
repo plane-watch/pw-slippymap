@@ -217,7 +217,7 @@ func (g *Game) Draw(screen *ebiten.Image) {
 			aircraftDrawOpts := aircraftMarker.MarkerDrawOpts(float64(v.Track), float64(aircraftX), float64(aircraftY))
 
 			// get fill colour from altitude
-			r, g, b := markers.AltitudeToColour(float64(aircraftMap[k].AltBaro))
+			r, g, b := markers.AltitudeToColour(float64(aircraftMap[k].AltBaro), aircraftMap[k].AirGround)
 
 			// invert colours
 			r = 1 - r
@@ -241,7 +241,7 @@ func (g *Game) Draw(screen *ebiten.Image) {
 				if mouseY >= int(topLeftY) && mouseY <= int(btmRightY) {
 					// if it is, determine if it is inside the shape
 					if aircraftMarker.PointInsideMarker(float64(mouseX)-topLeftX, float64(mouseY)-topLeftY) {
-						mouseOverMarkerText = fmt.Sprintf("ICAO: %X, Callsign: %s, Type: %s, Category: %X, Alt: %d, Gs: %d", k, v.Callsign, v.AircraftType, v.Category, v.AltBaro, v.GroundSpeed)
+						mouseOverMarkerText = fmt.Sprintf("ICAO: %X, Callsign: %s, Type: %s, Category: %X, Alt: %d, Gs: %d, AirGround: %s", k, v.Callsign, v.AircraftType, v.Category, v.AltBaro, v.GroundSpeed, v.AirGround.String())
 					}
 				}
 			}
@@ -414,6 +414,11 @@ func (g *Game) Draw(screen *ebiten.Image) {
 	do = m.MarkerDrawOpts(dbgMarkerRotateAngle, 1200, 25)
 	screen.DrawImage(m.Img, &do)
 	ebitenutil.DebugPrintAt(screen, "C182", 1200, 40)
+
+	m = (*g.aircraftMarkers)["TWEN"]
+	do = m.MarkerDrawOpts(dbgMarkerRotateAngle, 1250, 25)
+	screen.DrawImage(m.Img, &do)
+	ebitenutil.DebugPrintAt(screen, "TWEN", 1250, 40)
 
 }
 

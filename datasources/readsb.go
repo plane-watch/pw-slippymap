@@ -63,6 +63,7 @@ func ReadsbProtobuf(url string, adb *AircraftDB) {
 			adb.SetAltBaro(icao, int(a.GetAltBaro()))
 			adb.SetCategory(icao, int(a.GetCategory()))
 			adb.SetGs(icao, int(a.GetGs()))
+			adb.SetAirGround(icao, a.GetAirGround())
 			adb.SetLastSeen(icao)
 		}
 
