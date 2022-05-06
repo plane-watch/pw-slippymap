@@ -3,7 +3,6 @@ package slippymap
 import (
 	"errors"
 	"fmt"
-	"image/color"
 	_ "image/png"
 	"log"
 	"math"
@@ -223,20 +222,6 @@ func (sm *SlippyMap) Draw(screen *ebiten.Image) {
 			sm.imgMutex.Unlock()
 			t.imgMutex.Unlock()
 
-			// TEMPORARY TROUBLESHOOTING: check for black tile problem
-			// Uncommenting this code make it run terribly :(
-			// t.offsetMutex.Lock()
-			// if t.offsetX > 0 && t.offsetX < screen.Bounds().Max.X && t.offsetY > 0 && t.offsetY < screen.Bounds().Max.Y {
-			// 	sm.imgMutex.Lock()
-			// 	blackTest := sm.img.At(t.offsetX+10, t.offsetY+10)
-			// 	sm.imgMutex.Unlock()
-			// 	btR, btG, btB, _ := blackTest.RGBA()
-			// 	if btR == 0 && btG == 0 && btB == 0 {
-			// 		log.Printf("Black tile at %d/%d/%d", t.osm.x, t.osm.y, t.osm.zoom)
-			// 	}
-			// }
-			// t.offsetMutex.Unlock()
-
 			// debugging: print the OSM tile X/Y/Z
 			dbgText := fmt.Sprintf("%d/%d/%d", t.osm.x, t.osm.y, t.osm.zoom)
 			t.offsetMutex.Lock()
@@ -413,9 +398,6 @@ func (sm *SlippyMap) makeTile(osmX, osmY, offsetX, offsetY int) {
 
 	go func(t *mapTile, sm *SlippyMap) {
 
-		// TEMPORARY DEBUGGING:
-		log.Printf("Started loading artwork for: %d/%d/%d", t.osm.x, t.osm.y, t.osm.zoom)
-
 		// get tile artwork
 		tilePath, err := sm.tileProvider.GetTileAddress(t.osm)
 		if err != nil {
@@ -428,21 +410,12 @@ func (sm *SlippyMap) makeTile(osmX, osmY, offsetX, offsetY int) {
 			log.Fatal(err)
 		}
 
-		// TEMPORARY DEBUGGING:
-		blackTest := img.At(10, 10)
-		if blackTest == color.Black {
-			log.Println("ERROR!!! BLACK TILE AT: %d/%d/%d", t.osm.x, t.osm.y, t.osm.zoom)
-		}
-
 		t.imgMutex.Lock()
 		t.img.DrawImage(img, nil)
 		t.imgMutex.Unlock()
 
 		sm.scheduleUpdate()
 		sm.scheduleDraw()
-
-		// TEMPORARY DEBUGGING:
-		log.Printf("Finished loading artwork for: %d/%d/%d", t.osm.x, t.osm.y, t.osm.zoom)
 
 	}(t, sm)
 

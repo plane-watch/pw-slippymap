@@ -1,7 +1,6 @@
 package markers
 
 import (
-	"fmt"
 	"image/color"
 	"log"
 	"pw_slippymap/datasources/readsb_protobuf"
@@ -472,9 +471,8 @@ func makeAltitudeScale() (img *ebiten.Image) {
 		log.Fatal(err)
 	}
 
-	markerTxt := "0"
+	markerTxt := "G"
 	textRec := text.BoundString(ff, markerTxt)
-	fmt.Println(textRec)
 	text.Draw(img, markerTxt, ff, 5-(textRec.Max.X/2), textRec.Max.Y-textRec.Min.Y+2, color.White)
 
 	return img
