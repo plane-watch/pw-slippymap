@@ -240,11 +240,11 @@ func (ui *UserInterface) Update() error {
 		log.Println("Debug mode: Altitude Scale")
 
 	case STATE_DEBUG_ALTITUDE_SCALE_RUN:
-		// if windowW != int(ui.altitudeScale.Width) {
-		// 	dbgAltitudeScaleMutex.Lock()
-		// 	ui.altitudeScale = altitude.NewAltitudeScale(float64(windowW))
-		// 	dbgAltitudeScaleMutex.Unlock()
-		// }
+		if windowW != int(ui.altitudeScale.Width) {
+			dbgAltitudeScaleMutex.Lock()
+			ui.altitudeScale = altitude.NewAltitudeScale(float64(windowW))
+			dbgAltitudeScaleMutex.Unlock()
+		}
 
 	default:
 		log.Fatal("Invalid state in ui.Update!")
@@ -465,8 +465,8 @@ func (ui *UserInterface) Draw(screen *ebiten.Image) {
 
 	case STATE_DEBUG_ALTITUDE_SCALE_RUN:
 
-		fillC := color.RGBA{R: 100, G: 100, B: 100, A: 255}
-		screen.Fill(fillC)
+		// fillC := color.RGBA{R: 100, G: 100, B: 100, A: 255}
+		// screen.Fill(fillC)
 
 		// draw altitude scale
 		// altitudeScaleDio := &ebiten.DrawImageOptions{}
