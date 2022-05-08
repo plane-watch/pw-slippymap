@@ -82,18 +82,21 @@ type UserInterface struct {
 }
 
 func (ui *UserInterface) getState() int {
+	// get the user interface (game) state
 	ui.stateMutex.Lock()
 	defer ui.stateMutex.Unlock()
 	return ui.state
 }
 
 func (ui *UserInterface) setState(state int) {
+	// set the user interface (game) state
 	ui.stateMutex.Lock()
 	defer ui.stateMutex.Unlock()
 	ui.state = state
 }
 
 func (ui *UserInterface) updateStroke(stroke *userinput.Stroke) {
+	// update touch stroke for map movement/dragging
 	stroke.Update()
 	if !stroke.IsReleased() {
 		return
