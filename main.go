@@ -335,10 +335,13 @@ func (ui *UserInterface) drawAircraftMarkers(screen *ebiten.Image, mouseX, mouse
 			topLeftY := -aircraftMarker.CentreY + float64(aircraftY)
 			btmRightX := topLeftX + float64(aircraftMarker.Img.Bounds().Max.X)
 			btmRightY := topLeftY + float64(aircraftMarker.Img.Bounds().Max.Y)
+
 			if mouseX >= int(topLeftX) && mouseX <= int(btmRightX) {
 				if mouseY >= int(topLeftY) && mouseY <= int(btmRightY) {
 					// if it is, determine if it is inside the shape
-					if aircraftMarker.PointInsideMarker(float64(mouseX)-topLeftX, float64(mouseY)-topLeftY) {
+					pc := aircraftMarker.Img.At(mouseX-int(topLeftX), mouseY-int(topLeftY))
+					_, _, _, a := pc.RGBA()
+					if a != 0 {
 						mouseOverMarkerText = fmt.Sprintf("ICAO: %X, Callsign: %s, Type: %s, Category: %X, Alt: %d, Gs: %d, AirGround: %s", k, v.Callsign, v.AircraftType, v.Category, v.AltBaro, v.GroundSpeed, v.AirGround.String())
 					}
 				}
@@ -389,8 +392,6 @@ func (ui *UserInterface) Draw(screen *ebiten.Image) {
 		ebitenutil.DebugPrint(screen, "Loading...")
 
 	case STATE_RUN:
-
-		// windowW, windowH := ui.slippymap.GetSize()
 
 		// draw map
 		ui.slippymap.Draw(screen, ui.debugShowMapTileXYZ)
