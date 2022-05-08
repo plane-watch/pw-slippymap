@@ -5,7 +5,7 @@ go 1.17
 require (
 	github.com/akamensky/argparse v1.3.1
 	github.com/fogleman/gg v1.3.0
-	github.com/hajimehoshi/ebiten/v2 v2.3.1
+	github.com/hajimehoshi/ebiten/v2 v2.3.2-0.20220508140940-39a434311673
 	github.com/iwpnd/piper v0.1.0
 	github.com/mazznoer/colorgrad v0.8.1
 	github.com/stretchr/testify v1.7.1
