@@ -101,7 +101,6 @@ func (ui *UserInterface) updateStroke(stroke *userinput.Stroke) {
 	if !stroke.IsReleased() {
 		return
 	}
-
 }
 
 func (ui *UserInterface) loadSprites() {
@@ -110,7 +109,6 @@ func (ui *UserInterface) loadSprites() {
 	failFatally(err)
 	groundVehicleMarkers, err := markers.InitMarkers(markers.GroundVehicles)
 	failFatally(err)
-
 	ui.aircraftMarkers = &aircraftMarkers
 	ui.groundVehicleMarkers = &groundVehicleMarkers
 }
@@ -221,6 +219,7 @@ func (ui *UserInterface) Update() error {
 		ui.slippymap.Update(forceUpdate)
 
 	case STATE_DEBUG_MARKERS_STARTUP:
+		// debug mode: draw all the markers for testing and adjusting scale
 		ebiten.SetWindowTitle("plane.watch - Debug Markers")
 		ui.loadSprites()
 		ui.altitudeScale = altitude.NewAltitudeScale(float64(windowW))
@@ -228,18 +227,23 @@ func (ui *UserInterface) Update() error {
 		log.Println("Debug mode: Markers")
 
 	case STATE_DEBUG_MARKERS_RUN:
+		// debug mode: draw all the markers for testing and adjusting scale
+		// rotate markers
 		dbgMarkerRotateAngle += 0.5
 		if dbgMarkerRotateAngle >= 360 {
 			dbgMarkerRotateAngle = 0
 		}
 
 	case STATE_DEBUG_ALTITUDE_SCALE_STARTUP:
+		// debug mode: draw the altitude scale for testing
 		ebiten.SetWindowTitle("plane.watch - Debug Altitude Scale")
 		ui.altitudeScale = altitude.NewAltitudeScale(float64(windowW))
 		ui.setState(STATE_DEBUG_ALTITUDE_SCALE_RUN)
 		log.Println("Debug mode: Altitude Scale")
 
 	case STATE_DEBUG_ALTITUDE_SCALE_RUN:
+		// debug mode: draw the altitude scale for testing
+		// resize with window
 		if windowW != int(ui.altitudeScale.Width) {
 			ui.altitudeScale = altitude.NewAltitudeScale(float64(windowW))
 		}
@@ -455,13 +459,17 @@ func (ui *UserInterface) Draw(screen *ebiten.Image) {
 		ebitenutil.DebugPrintAt(screen, dbgMouseOverMarkerText, 0, 90)
 
 	case STATE_DEBUG_MARKERS_STARTUP:
+		// debug mode: draw all the markers for testing and adjusting scale
 
 	case STATE_DEBUG_MARKERS_RUN:
+		// debug mode: draw all the markers for testing and adjusting scale
 		ui.debugDrawMarkers(screen)
 
 	case STATE_DEBUG_ALTITUDE_SCALE_STARTUP:
+		// debug mode: draw the altitude scale for testing
 
 	case STATE_DEBUG_ALTITUDE_SCALE_RUN:
+		// debug mode: draw the altitude scale for testing
 
 		// background fill
 		fillC := color.RGBA{R: 100, G: 100, B: 100, A: 255}
