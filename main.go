@@ -235,7 +235,7 @@ func (ui *UserInterface) Update() error {
 		ebiten.SetWindowTitle("plane.watch - Debug Altitude Scale")
 		ebiten.SetFPSMode(ebiten.FPSModeVsyncOn)
 		ebiten.SetMaxTPS(60)
-		ui.altitudeScale = altitude.NewAltitudeScale(800.0)
+		ui.altitudeScale = altitude.NewAltitudeScale(float64(windowW))
 		ui.setState(STATE_DEBUG_ALTITUDE_SCALE_RUN)
 		log.Println("Debug mode: Altitude Scale")
 
