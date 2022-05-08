@@ -106,8 +106,8 @@ func remap(x, inMin, inMax, outMin, outMax float64) float64 {
 func AltitudeToColour(alt float64, airground readsb_protobuf.AircraftMeta_AirGround) (r, g, b float64) {
 
 	if airground == readsb_protobuf.AircraftMeta_AG_GROUND {
-		// if the plane/vehicle is on the ground
 
+		// if the plane/vehicle is on the ground
 		r = float64(ColourGround.R) / 255
 		g = float64(ColourGround.G) / 255
 		b = float64(ColourGround.B) / 255
@@ -123,9 +123,7 @@ func AltitudeToColour(alt float64, airground readsb_protobuf.AircraftMeta_AirGro
 			alt = ALTITUDE_MIN_FT
 		}
 
-		// perform a "map" (https://www.arduino.cc/reference/en/language/functions/math/map/)
-		// unsure what this is called in golang...
-
+		// extract r,g,b
 		r = altitudeColourGrad.At(alt).R
 		g = altitudeColourGrad.At(alt).G
 		b = altitudeColourGrad.At(alt).B
@@ -169,6 +167,7 @@ func NewAltitudeScale(width float64) *AltitudeScale {
 		}
 	}
 
+	// used for ticks/text to prevent overlap
 	var newX, prevX int
 	var newRect, prevRect image.Rectangle
 
@@ -221,6 +220,7 @@ func NewAltitudeScale(width float64) *AltitudeScale {
 }
 
 func makeAltitudeColourGrad() colorgrad.Gradient {
+	// creates the colour gradient used for altitude scale
 	grad, err := colorgrad.NewGradient().
 		HtmlColors("saddlebrown", "greenyellow", "gold", "hotpink", "darkturquoise").
 		Domain(ALTITUDE_MIN_FT, ALTITUDE_MAX_FT).
