@@ -136,6 +136,9 @@ func AltitudeToColour(alt float64, airground readsb_protobuf.AircraftMeta_AirGro
 
 func NewAltitudeScale(width float64) *AltitudeScale {
 
+	// prep output
+	output := &AltitudeScale{Width: width}
+
 	// prep font
 	faceOpts := opentype.FaceOptions{
 		Size:    12,
@@ -148,10 +151,10 @@ func NewAltitudeScale(width float64) *AltitudeScale {
 	}
 
 	// create alt scale image
-	img := ebiten.NewImage(int(width), int(ALTITUDESCALE_HEIGHT))
-	img.Fill(color.RGBA{R: 0, G: 0, B: 0, A: 128})
+	output.Img = ebiten.NewImage(int(width), int(ALTITUDESCALE_HEIGHT))
+	output.Img.Fill(color.RGBA{R: 0, G: 0, B: 0, A: 128})
 
-	// draw gradient
+	// draw colour gradient bar
 	for x := ALTITUDESCALE_GROUNDBOX_WIDTH; x < width; x++ {
 
 		// map x pixel to altitude
@@ -162,7 +165,7 @@ func NewAltitudeScale(width float64) *AltitudeScale {
 
 		// set pixel colours
 		for y := ALTITUDESCALE_COLOUR_BAR_Y_OFFSET; y < ALTITUDESCALE_HEIGHT; y++ {
-			img.Set(int(x), int(y), col)
+			output.Img.Set(int(x), int(y), col)
 		}
 	}
 
@@ -173,7 +176,7 @@ func NewAltitudeScale(width float64) *AltitudeScale {
 	markerTxt := "G"
 	newRect = text.BoundString(ff, markerTxt)
 	newX = 5 - (newRect.Max.X / 2)
-	text.Draw(img, markerTxt, ff, newX, newRect.Max.Y-newRect.Min.Y+2, color.White)
+	text.Draw(output.Img, markerTxt, ff, newX, newRect.Max.Y-newRect.Min.Y+2, color.White)
 	prevX = newX
 	prevRect = newRect
 
@@ -195,12 +198,12 @@ func NewAltitudeScale(width float64) *AltitudeScale {
 		if newX > prevX+prevRect.Dx()+10 && newX+newRect.Dx() <= int(width) {
 
 			// draw text
-			text.Draw(img, markerTxt, ff, newX, newRect.Max.Y-newRect.Min.Y+2, color.White)
+			text.Draw(output.Img, markerTxt, ff, newX, newRect.Max.Y-newRect.Min.Y+2, color.White)
 
 			// draw tick
 			altitudeScaleTickDio := &ebiten.DrawImageOptions{}
 			altitudeScaleTickDio.GeoM.Translate(x, ALTITUDESCALE_COLOUR_BAR_Y_OFFSET)
-			img.DrawImage(altitudeScaleTick, altitudeScaleTickDio)
+			output.Img.DrawImage(altitudeScaleTick, altitudeScaleTickDio)
 
 			// save previous state
 			prevX = newX
@@ -212,17 +215,14 @@ func NewAltitudeScale(width float64) *AltitudeScale {
 	// draw ground square
 	gndSquareDio := &ebiten.DrawImageOptions{}
 	gndSquareDio.GeoM.Translate(0, ALTITUDESCALE_COLOUR_BAR_Y_OFFSET)
-	img.DrawImage(altitudeScaleGroundSquare, gndSquareDio)
+	output.Img.DrawImage(altitudeScaleGroundSquare, gndSquareDio)
 
-	return &AltitudeScale{
-		Img:   img,
-		Width: width,
-	}
+	return output
 }
 
 func makeAltitudeColourGrad() colorgrad.Gradient {
 	grad, err := colorgrad.NewGradient().
-		HtmlColors("gold", "hotpink", "darkturquoise").
+		HtmlColors("saddlebrown", "greenyellow", "gold", "hotpink", "darkturquoise").
 		Domain(ALTITUDE_MIN_FT, ALTITUDE_MAX_FT).
 		Build()
 	if err != nil {
@@ -233,15 +233,15 @@ func makeAltitudeColourGrad() colorgrad.Gradient {
 
 func init() {
 
+	// pre-render the ground square
 	altitudeScaleGroundSquare = ebiten.NewImage(int(ALTITUDESCALE_GROUNDBOX_WIDTH), int(ALTITUDESCALE_COLOUR_BAR_HEIGHT))
 	altitudeScaleGroundSquare.Fill(ColourGround)
 
+	// pre render the tick marks
 	altitudeScaleTick = ebiten.NewImage(1, ALTITUDESCALE_COLOUR_BAR_HEIGHT)
 	altitudeScaleTick.Fill(color.Black)
 
 	// make colour gradient for altitude colours
 	altitudeColourGrad = makeAltitudeColourGrad()
 
-	// // make altitude scale image
-	// AltitudeScale = makeAltitudeScale()
 }
