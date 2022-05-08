@@ -1,5 +1,7 @@
 package attribution
 
+// this module contains the code to create the OpenStreetMaps attribution
+
 import (
 	"image/color"
 	"log"
