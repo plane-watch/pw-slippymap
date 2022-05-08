@@ -47,10 +47,6 @@ var (
 	// Zoom
 	zoomCoolDown int = 0
 
-	// Window Size
-	windowWidth  int
-	windowHeight int
-
 	// Debugging
 	dbgMouseOverTileText string
 	dbgMouseLatLongText  string
@@ -117,13 +113,13 @@ func (ui *UserInterface) loadSprites() {
 	ui.groundVehicleMarkers = &groundVehicleMarkers
 }
 
-func (ui *UserInterface) handleWindowResize() {
+func (ui *UserInterface) handleWindowResize(windowW, windowH int) {
 	// set slippymap size if window size changed
 	smW, smH := ui.slippymap.GetSize()
-	wsW, wsH := ebiten.WindowSize()
-	if wsW != smW || wsH != smH {
-		newsm := ui.slippymap.SetSize(wsW, wsH)
+	if windowW != smW || windowH != smH {
+		newsm := ui.slippymap.SetSize(windowW, windowH)
 		ui.slippymap = newsm
+		ebiten.ScheduleFrame()
 	}
 }
 
@@ -211,7 +207,7 @@ func (ui *UserInterface) Update() error {
 	case STATE_RUN:
 
 		// handle window resize
-		ui.handleWindowResize()
+		ui.handleWindowResize(windowW, windowH)
 
 		// handle mouse wheel
 		ui.handleMouseWheel()
@@ -354,9 +350,7 @@ func (ui *UserInterface) drawAircraftMarkers(screen *ebiten.Image, mouseX, mouse
 
 }
 
-func (ui *UserInterface) debugDrawMarkers(screen *ebiten.Image) {
-
-	screenX, screenY := ebiten.WindowSize()
+func (ui *UserInterface) debugDrawMarkers(screen *ebiten.Image, windowW, windowH int) {
 
 	var markerTypes []string
 
@@ -365,8 +359,8 @@ func (ui *UserInterface) debugDrawMarkers(screen *ebiten.Image) {
 	}
 	sort.Strings(markerTypes)
 
-	for y := 25; y <= screenY-25; y += 70 {
-		for x := 25; x <= screenX-25; x += 50 {
+	for y := 25; y <= windowH-25; y += 70 {
+		for x := 25; x <= windowW-25; x += 50 {
 
 			if len(markerTypes) <= 0 {
 				continue
@@ -387,7 +381,7 @@ func (ui *UserInterface) debugDrawMarkers(screen *ebiten.Image) {
 func (ui *UserInterface) Draw(screen *ebiten.Image) {
 
 	mouseX, mouseY := ebiten.CursorPosition()
-	// windowW, _ := ebiten.WindowSize()
+	windowW, windowH := ebiten.WindowSize()
 
 	switch ui.getState() {
 
@@ -396,7 +390,7 @@ func (ui *UserInterface) Draw(screen *ebiten.Image) {
 
 	case STATE_RUN:
 
-		windowW, windowH := ui.slippymap.GetSize()
+		// windowW, windowH := ui.slippymap.GetSize()
 
 		// draw map
 		ui.slippymap.Draw(screen, ui.debugShowMapTileXYZ)
@@ -415,7 +409,7 @@ func (ui *UserInterface) Draw(screen *ebiten.Image) {
 		screen.DrawImage(attribution.MapAttribution.Img, mapAttributionDio)
 
 		// debugging: darken area with debug text
-		darkArea := ebiten.NewImage(windowWidth, 115)
+		darkArea := ebiten.NewImage(windowW, 115)
 		darkArea.Fill(color.Black)
 		darkAreaDio := &ebiten.DrawImageOptions{}
 		darkAreaDio.ColorM.Scale(1, 1, 1, 0.65)
@@ -463,7 +457,7 @@ func (ui *UserInterface) Draw(screen *ebiten.Image) {
 
 	case STATE_DEBUG_MARKERS_RUN:
 		// debug mode: draw all the markers for testing and adjusting scale
-		ui.debugDrawMarkers(screen)
+		ui.debugDrawMarkers(screen, windowW, windowH)
 
 	case STATE_DEBUG_ALTITUDE_SCALE_STARTUP:
 		// debug mode: draw the altitude scale for testing
@@ -566,8 +560,8 @@ func main() {
 	// determine starting window size
 	// 80% of fullscreen
 	screenWidth, screenHeight := ebiten.ScreenSizeInFullscreen()
-	windowWidth = int(float64(screenWidth) * INIT_WINDOW_SIZE)
-	windowHeight = int(float64(screenHeight) * INIT_WINDOW_SIZE)
+	windowWidth := int(float64(screenWidth) * INIT_WINDOW_SIZE)
+	windowHeight := int(float64(screenHeight) * INIT_WINDOW_SIZE)
 
 	// set up initial window
 	ebiten.SetWindowResizable(true)
