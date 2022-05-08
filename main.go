@@ -80,6 +80,9 @@ type UserInterface struct {
 
 	// altitude scale
 	altitudeScale *altitude.AltitudeScale
+
+	// debugging: show map tile OSM X/Y/zoom
+	debugShowMapTileXYZ bool
 }
 
 func (ui *UserInterface) getState() int {
@@ -396,17 +399,17 @@ func (ui *UserInterface) Draw(screen *ebiten.Image) {
 		windowW, windowH := ui.slippymap.GetSize()
 
 		// draw map
-		ui.slippymap.Draw(screen)
+		ui.slippymap.Draw(screen, ui.debugShowMapTileXYZ)
 
 		// draw aircraft
 		mouseOverMarkerText := ui.drawAircraftMarkers(screen, mouseX, mouseY)
 
-		// draw altitude scale
+		// draw altitude scale at the bottom centre of map
 		altitudeScaleDio := &ebiten.DrawImageOptions{}
 		altitudeScaleDio.GeoM.Translate((float64(windowW)/2)-(float64(ui.altitudeScale.Img.Bounds().Max.X)/2), float64(windowH)-float64(ui.altitudeScale.Img.Bounds().Max.Y))
 		screen.DrawImage(ui.altitudeScale.Img, altitudeScaleDio)
 
-		// draw attribution
+		// draw OpenStreetMap attribution at the bottom right of map
 		mapAttributionDio := &ebiten.DrawImageOptions{}
 		mapAttributionDio.GeoM.Translate(float64(windowW)-float64(attribution.MapAttribution.Img.Bounds().Dx()), float64(windowH)-float64(attribution.MapAttribution.Img.Bounds().Dy()))
 		screen.DrawImage(attribution.MapAttribution.Img, mapAttributionDio)
@@ -502,6 +505,7 @@ func failFatally(err error) {
 type runtimeConfiguration struct {
 	readsbAircraftProtobufUrl string
 	initalState               int
+	debugShowMapTileXYZ       bool
 }
 
 func processCommandLine() runtimeConfiguration {
@@ -516,6 +520,7 @@ func processCommandLine() runtimeConfiguration {
 	// debug options
 	debugDrawMarkers := parser.Flag("", "debugdrawmarkers", &argparse.Options{Required: false, Help: "Debug mode: show all aircraft markers"})
 	debugAltitudeScale := parser.Flag("", "debugaltitudescale", &argparse.Options{Required: false, Help: "Debug mode: show altitude scale"})
+	debugShowMapTileXYZ := parser.Flag("", "debugshowmaptilexyz", &argparse.Options{Required: false, Help: "Debug mode: show OSM map tile X/Y/zoom"})
 
 	// Parse input
 	err := parser.Parse(os.Args)
@@ -539,6 +544,10 @@ func processCommandLine() runtimeConfiguration {
 
 	if *debugAltitudeScale {
 		conf.initalState = STATE_DEBUG_ALTITUDE_SCALE_STARTUP
+	}
+
+	if *debugShowMapTileXYZ {
+		conf.debugShowMapTileXYZ = true
 	}
 
 	return conf
@@ -578,10 +587,11 @@ func main() {
 
 	// prepare "game"
 	ui := &UserInterface{
-		aircraftDb:   adb,
-		strokes:      map[*userinput.Stroke]struct{}{},
-		tileProvider: &tileProvider,
-		state:        conf.initalState,
+		aircraftDb:          adb,
+		strokes:             map[*userinput.Stroke]struct{}{},
+		tileProvider:        &tileProvider,
+		state:               conf.initalState,
+		debugShowMapTileXYZ: conf.debugShowMapTileXYZ,
 	}
 
 	// In FPSModeVsyncOffMinimum, the game's Update and Draw are called only when
