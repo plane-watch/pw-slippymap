@@ -579,6 +579,11 @@ func NewSlippyMap(
 	mapWidthPx, mapHeightPx, zoomLevel int,
 	centreLat, centreLong float64,
 	tileProvider TileProvider) (sm *SlippyMap) {
+	// Returns a new slippymap.
+	// Size is defined by mapWidthPx, mapHeightPx.
+	// OSM zoom level defined by zoomLevel.
+	// Centred on centreLat, centreLong.
+	// Tile provider defined by tileProvider
 
 	log.Printf("Initialising SlippyMap at %0.4f/%0.4f, zoom level %d", centreLat, centreLong, zoomLevel)
 
