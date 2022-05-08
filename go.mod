@@ -1,12 +1,11 @@
 module pw_slippymap
 
-go 1.17
+go 1.18
 
 require (
 	github.com/akamensky/argparse v1.3.1
 	github.com/fogleman/gg v1.3.0
 	github.com/hajimehoshi/ebiten/v2 v2.3.2-0.20220508140940-39a434311673
-	github.com/iwpnd/piper v0.1.0
 	github.com/mazznoer/colorgrad v0.8.1
 	github.com/stretchr/testify v1.7.1
 	golang.org/x/image v0.0.0-20220413100746-70e8d0d3baa9
