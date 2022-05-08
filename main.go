@@ -6,6 +6,7 @@ import (
 	"log"
 	"os"
 	"pw_slippymap/altitude"
+	"pw_slippymap/attribution"
 	"pw_slippymap/datasources"
 	"pw_slippymap/markers"
 	"pw_slippymap/slippymap"
@@ -392,7 +393,7 @@ func (ui *UserInterface) Draw(screen *ebiten.Image) {
 
 	case STATE_RUN:
 
-		windowX, windowY := ui.slippymap.GetSize()
+		windowW, windowH := ui.slippymap.GetSize()
 
 		// draw map
 		ui.slippymap.Draw(screen)
@@ -402,17 +403,13 @@ func (ui *UserInterface) Draw(screen *ebiten.Image) {
 
 		// draw altitude scale
 		altitudeScaleDio := &ebiten.DrawImageOptions{}
-		altitudeScaleDio.GeoM.Translate((float64(windowX)/2)-(float64(ui.altitudeScale.Img.Bounds().Max.X)/2), float64(windowY)-float64(ui.altitudeScale.Img.Bounds().Max.Y))
+		altitudeScaleDio.GeoM.Translate((float64(windowW)/2)-(float64(ui.altitudeScale.Img.Bounds().Max.X)/2), float64(windowH)-float64(ui.altitudeScale.Img.Bounds().Max.Y))
 		screen.DrawImage(ui.altitudeScale.Img, altitudeScaleDio)
 
-		// draw osm attribution
-		attributionArea := ebiten.NewImage(100, 20)
-		attributionArea.Fill(color.Black)
-		attributionAreaDio := &ebiten.DrawImageOptions{}
-		attributionAreaDio.ColorM.Scale(1, 1, 1, 0.65)
-		attributionAreaDio.GeoM.Translate(float64(windowX-100), float64(windowY-20))
-		screen.DrawImage(attributionArea, attributionAreaDio)
-		ebitenutil.DebugPrintAt(screen, "© OpenStreetMap", windowX-96, windowY-18)
+		// draw attribution
+		mapAttributionDio := &ebiten.DrawImageOptions{}
+		mapAttributionDio.GeoM.Translate(float64(windowW)-float64(attribution.MapAttribution.Img.Bounds().Dx()), float64(windowH)-float64(attribution.MapAttribution.Img.Bounds().Dy()))
+		screen.DrawImage(attribution.MapAttribution.Img, mapAttributionDio)
 
 		// debugging: darken area with debug text
 		darkArea := ebiten.NewImage(windowWidth, 115)
