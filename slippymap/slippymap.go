@@ -192,7 +192,7 @@ func (sm *SlippyMap) GetNumTiles() (numTiles int) {
 	return output
 }
 
-func (sm *SlippyMap) Draw(screen *ebiten.Image) {
+func (sm *SlippyMap) Draw(screen *ebiten.Image, debugShowTileXYZ bool) {
 
 	// draw the previous zoom level in the background so zooming fades nicely
 	// TODO: stretch this image so it looks like we're zooming in, new tiles will fade in over old ones
@@ -211,10 +211,6 @@ func (sm *SlippyMap) Draw(screen *ebiten.Image) {
 			dio.GeoM.Translate(float64(t.offsetX), float64(t.offsetY))
 			t.offsetMutex.Unlock()
 
-			// adjust transparency (for fade-in of tiles)
-			// dio.ColorM.Scale(1, 1, 1, (*t).alpha)
-			dio.ColorM.Scale(1, 1, 1, 1)
-
 			// draw the tile
 			t.imgMutex.Lock()
 			sm.imgMutex.Lock()
@@ -223,12 +219,14 @@ func (sm *SlippyMap) Draw(screen *ebiten.Image) {
 			t.imgMutex.Unlock()
 
 			// debugging: print the OSM tile X/Y/Z
-			dbgText := fmt.Sprintf("%d/%d/%d", t.osm.x, t.osm.y, t.osm.zoom)
-			t.offsetMutex.Lock()
-			sm.imgMutex.Lock()
-			ebitenutil.DebugPrintAt(sm.img, dbgText, t.offsetX, t.offsetY)
-			sm.imgMutex.Unlock()
-			t.offsetMutex.Unlock()
+			if debugShowTileXYZ {
+				dbgText := fmt.Sprintf("%d/%d/%d", t.osm.x, t.osm.y, t.osm.zoom)
+				t.offsetMutex.Lock()
+				sm.imgMutex.Lock()
+				ebitenutil.DebugPrintAt(sm.img, dbgText, t.offsetX, t.offsetY)
+				sm.imgMutex.Unlock()
+				t.offsetMutex.Unlock()
+			}
 		}
 	}
 
@@ -410,10 +408,12 @@ func (sm *SlippyMap) makeTile(osmX, osmY, offsetX, offsetY int) {
 			log.Fatal(err)
 		}
 
+		// draw image
 		t.imgMutex.Lock()
 		t.img.DrawImage(img, nil)
 		t.imgMutex.Unlock()
 
+		// ensure ebiten updates & draws
 		sm.scheduleUpdate()
 		sm.scheduleDraw()
 
@@ -426,6 +426,7 @@ func (sm *SlippyMap) makeTile(osmX, osmY, offsetX, offsetY int) {
 	sm.tilesMutex.Unlock()
 	t.imgMutex.Unlock()
 
+	// ensure ebiten updates & draws
 	sm.scheduleUpdate()
 	sm.scheduleDraw()
 }
@@ -444,7 +445,7 @@ func (sm *SlippyMap) SetSize(mapWidthPx, mapHeightPx int) (newsm *SlippyMap) {
 	newsm = NewSlippyMap(mapWidthPx, mapHeightPx, sm.zoomLevel, centreLat, centreLong, sm.tileProvider)
 
 	// copy the current map image into the zoom previous level background image
-	sm.Draw(newsm.zoomPrevLevelImg)
+	sm.Draw(newsm.zoomPrevLevelImg, false)
 
 	return newsm
 }
@@ -568,7 +569,7 @@ func (sm *SlippyMap) SetZoomLevel(zoomLevel int, lat_deg, long_deg float64) (new
 	sm.mapSizeMutex.Unlock()
 
 	// copy the current map image into the zoom previous level background image
-	sm.Draw(newsm.zoomPrevLevelImg)
+	sm.Draw(newsm.zoomPrevLevelImg, false)
 
 	// return the new slippymap and no error
 	return newsm, nil
@@ -578,6 +579,11 @@ func NewSlippyMap(
 	mapWidthPx, mapHeightPx, zoomLevel int,
 	centreLat, centreLong float64,
 	tileProvider TileProvider) (sm *SlippyMap) {
+	// Returns a new slippymap.
+	// Size is defined by mapWidthPx, mapHeightPx.
+	// OSM zoom level defined by zoomLevel.
+	// Centred on centreLat, centreLong.
+	// Tile provider defined by tileProvider
 
 	log.Printf("Initialising SlippyMap at %0.4f/%0.4f, zoom level %d", centreLat, centreLong, zoomLevel)
 

@@ -5,6 +5,8 @@ import (
 	"image/color"
 	"log"
 	"os"
+	"pw_slippymap/altitude"
+	"pw_slippymap/attribution"
 	"pw_slippymap/datasources"
 	"pw_slippymap/markers"
 	"pw_slippymap/slippymap"
@@ -35,16 +37,15 @@ const (
 	STATE_DEBUG_MARKERS_STARTUP = 110
 	STATE_DEBUG_MARKERS_RUN     = 111
 
+	STATE_DEBUG_ALTITUDE_SCALE_STARTUP = 120
+	STATE_DEBUG_ALTITUDE_SCALE_RUN     = 121
+
 	// ----------------------------------------------------
 )
 
 var (
 	// Zoom
 	zoomCoolDown int = 0
-
-	// Window Size
-	windowWidth  int
-	windowHeight int
 
 	// Debugging
 	dbgMouseOverTileText string
@@ -72,26 +73,34 @@ type UserInterface struct {
 	// markers
 	aircraftMarkers      *map[string]markers.Marker
 	groundVehicleMarkers *map[string]markers.Marker
+
+	// altitude scale
+	altitudeScale *altitude.AltitudeScale
+
+	// debugging: show map tile OSM X/Y/zoom
+	debugShowMapTileXYZ bool
 }
 
 func (ui *UserInterface) getState() int {
+	// get the user interface (game) state
 	ui.stateMutex.Lock()
 	defer ui.stateMutex.Unlock()
 	return ui.state
 }
 
 func (ui *UserInterface) setState(state int) {
+	// set the user interface (game) state
 	ui.stateMutex.Lock()
 	defer ui.stateMutex.Unlock()
 	ui.state = state
 }
 
 func (ui *UserInterface) updateStroke(stroke *userinput.Stroke) {
+	// update touch stroke for map movement/dragging
 	stroke.Update()
 	if !stroke.IsReleased() {
 		return
 	}
-
 }
 
 func (ui *UserInterface) loadSprites() {
@@ -100,18 +109,17 @@ func (ui *UserInterface) loadSprites() {
 	failFatally(err)
 	groundVehicleMarkers, err := markers.InitMarkers(markers.GroundVehicles)
 	failFatally(err)
-
 	ui.aircraftMarkers = &aircraftMarkers
 	ui.groundVehicleMarkers = &groundVehicleMarkers
 }
 
-func (ui *UserInterface) handleWindowResize() {
+func (ui *UserInterface) handleWindowResize(windowW, windowH int) {
 	// set slippymap size if window size changed
 	smW, smH := ui.slippymap.GetSize()
-	wsW, wsH := ebiten.WindowSize()
-	if wsW != smW || wsH != smH {
-		newsm := ui.slippymap.SetSize(wsW, wsH)
+	if windowW != smW || windowH != smH {
+		newsm := ui.slippymap.SetSize(windowW, windowH)
 		ui.slippymap = newsm
+		ebiten.ScheduleFrame()
 	}
 }
 
@@ -184,19 +192,22 @@ func (ui *UserInterface) handleMouseMovement() bool {
 
 func (ui *UserInterface) Update() error {
 
+	windowW, windowH := ebiten.WindowSize()
+
 	switch ui.getState() {
 
 	case STATE_STARTUP:
 
 		log.Println("Starting UI")
 		ui.loadSprites()
-		ui.slippymap = slippymap.NewSlippyMap(windowWidth, windowHeight, INIT_ZOOM_LEVEL, INIT_CENTRE_LAT, INIT_CENTRE_LONG, *ui.tileProvider)
+		ui.altitudeScale = altitude.NewAltitudeScale(600.0)
+		ui.slippymap = slippymap.NewSlippyMap(windowW, windowH, INIT_ZOOM_LEVEL, INIT_CENTRE_LAT, INIT_CENTRE_LONG, *ui.tileProvider)
 		ui.setState(STATE_RUN)
 
 	case STATE_RUN:
 
 		// handle window resize
-		ui.handleWindowResize()
+		ui.handleWindowResize(windowW, windowH)
 
 		// handle mouse wheel
 		ui.handleMouseWheel()
@@ -208,13 +219,33 @@ func (ui *UserInterface) Update() error {
 		ui.slippymap.Update(forceUpdate)
 
 	case STATE_DEBUG_MARKERS_STARTUP:
+		// debug mode: draw all the markers for testing and adjusting scale
+		ebiten.SetWindowTitle("plane.watch - Debug Markers")
 		ui.loadSprites()
+		ui.altitudeScale = altitude.NewAltitudeScale(float64(windowW))
 		ui.setState(STATE_DEBUG_MARKERS_RUN)
+		log.Println("Debug mode: Markers")
 
 	case STATE_DEBUG_MARKERS_RUN:
+		// debug mode: draw all the markers for testing and adjusting scale
+		// rotate markers
 		dbgMarkerRotateAngle += 0.5
 		if dbgMarkerRotateAngle >= 360 {
 			dbgMarkerRotateAngle = 0
+		}
+
+	case STATE_DEBUG_ALTITUDE_SCALE_STARTUP:
+		// debug mode: draw the altitude scale for testing
+		ebiten.SetWindowTitle("plane.watch - Debug Altitude Scale")
+		ui.altitudeScale = altitude.NewAltitudeScale(float64(windowW))
+		ui.setState(STATE_DEBUG_ALTITUDE_SCALE_RUN)
+		log.Println("Debug mode: Altitude Scale")
+
+	case STATE_DEBUG_ALTITUDE_SCALE_RUN:
+		// debug mode: draw the altitude scale for testing
+		// resize with window
+		if windowW != int(ui.altitudeScale.Width) {
+			ui.altitudeScale = altitude.NewAltitudeScale(float64(windowW))
 		}
 
 	default:
@@ -284,7 +315,7 @@ func (ui *UserInterface) drawAircraftMarkers(screen *ebiten.Image, mouseX, mouse
 			aircraftDrawOpts := aircraftMarker.MarkerDrawOpts(float64(v.Track), float64(aircraftX), float64(aircraftY))
 
 			// get fill colour from altitude
-			r, g, b := markers.AltitudeToColour(float64(aircraftMap[k].AltBaro), aircraftMap[k].AirGround)
+			r, g, b := altitude.AltitudeToColour(float64(aircraftMap[k].AltBaro), aircraftMap[k].AirGround)
 
 			// invert colours
 			r = 1 - r
@@ -304,10 +335,13 @@ func (ui *UserInterface) drawAircraftMarkers(screen *ebiten.Image, mouseX, mouse
 			topLeftY := -aircraftMarker.CentreY + float64(aircraftY)
 			btmRightX := topLeftX + float64(aircraftMarker.Img.Bounds().Max.X)
 			btmRightY := topLeftY + float64(aircraftMarker.Img.Bounds().Max.Y)
+
 			if mouseX >= int(topLeftX) && mouseX <= int(btmRightX) {
 				if mouseY >= int(topLeftY) && mouseY <= int(btmRightY) {
 					// if it is, determine if it is inside the shape
-					if aircraftMarker.PointInsideMarker(float64(mouseX)-topLeftX, float64(mouseY)-topLeftY) {
+					pc := aircraftMarker.Img.At(mouseX-int(topLeftX), mouseY-int(topLeftY))
+					_, _, _, a := pc.RGBA()
+					if a != 0 {
 						mouseOverMarkerText = fmt.Sprintf("ICAO: %X, Callsign: %s, Type: %s, Category: %X, Alt: %d, Gs: %d, AirGround: %s", k, v.Callsign, v.AircraftType, v.Category, v.AltBaro, v.GroundSpeed, v.AirGround.String())
 					}
 				}
@@ -319,124 +353,38 @@ func (ui *UserInterface) drawAircraftMarkers(screen *ebiten.Image, mouseX, mouse
 
 }
 
-func (ui *UserInterface) debugDrawMarkers(screen *ebiten.Image) {
+func (ui *UserInterface) debugDrawMarkers(screen *ebiten.Image, windowW, windowH int) {
 
-	// draw aircraft (TESTING)
-	m := (*ui.aircraftMarkers)["A388"]
-	do := m.MarkerDrawOpts(dbgMarkerRotateAngle, 203, 25)
-	screen.DrawImage(m.Img, &do)
-	ebitenutil.DebugPrintAt(screen, "A388", 203, 40)
+	var markerTypes []string
 
-	m = (*ui.aircraftMarkers)["F100"]
-	do = m.MarkerDrawOpts(dbgMarkerRotateAngle, 257, 25)
-	screen.DrawImage(m.Img, &do)
-	ebitenutil.DebugPrintAt(screen, "F100", 257, 40)
+	for k, _ := range *ui.aircraftMarkers {
+		markerTypes = append(markerTypes, k)
+	}
+	sort.Strings(markerTypes)
 
-	m = (*ui.aircraftMarkers)["PC12"]
-	do = m.MarkerDrawOpts(dbgMarkerRotateAngle, 300, 25)
-	screen.DrawImage(m.Img, &do)
-	ebitenutil.DebugPrintAt(screen, "PC12", 300, 40)
+	for y := 25; y <= windowH-25; y += 70 {
+		for x := 25; x <= windowW-25; x += 50 {
 
-	m = (*ui.aircraftMarkers)["SF34"]
-	do = m.MarkerDrawOpts(dbgMarkerRotateAngle, 350, 25)
-	screen.DrawImage(m.Img, &do)
-	ebitenutil.DebugPrintAt(screen, "SF34", 350, 40)
+			if len(markerTypes) <= 0 {
+				continue
+			}
 
-	m = (*ui.aircraftMarkers)["E190"]
-	do = m.MarkerDrawOpts(dbgMarkerRotateAngle, 400, 25)
-	screen.DrawImage(m.Img, &do)
-	ebitenutil.DebugPrintAt(screen, "E190", 400, 40)
+			var icao string
+			icao, markerTypes = markerTypes[0], markerTypes[1:]
 
-	m = (*ui.aircraftMarkers)["DH8D"]
-	do = m.MarkerDrawOpts(dbgMarkerRotateAngle, 450, 25)
-	screen.DrawImage(m.Img, &do)
-	ebitenutil.DebugPrintAt(screen, "DH8D", 450, 40)
+			m := (*ui.aircraftMarkers)[icao]
+			do := m.MarkerDrawOpts(dbgMarkerRotateAngle, float64(x), float64(y))
+			screen.DrawImage(m.Img, &do)
+			ebitenutil.DebugPrintAt(screen, icao, x-15, y+15)
 
-	m = (*ui.aircraftMarkers)["A320"]
-	do = m.MarkerDrawOpts(dbgMarkerRotateAngle, 500, 25)
-	screen.DrawImage(m.Img, &do)
-	ebitenutil.DebugPrintAt(screen, "A320", 500, 40)
-
-	m = (*ui.aircraftMarkers)["B738"]
-	do = m.MarkerDrawOpts(dbgMarkerRotateAngle, 550, 25)
-	screen.DrawImage(m.Img, &do)
-	ebitenutil.DebugPrintAt(screen, "B738", 550, 40)
-
-	m = (*ui.aircraftMarkers)["B77W"]
-	do = m.MarkerDrawOpts(dbgMarkerRotateAngle, 600, 25)
-	screen.DrawImage(m.Img, &do)
-	ebitenutil.DebugPrintAt(screen, "B77W", 600, 40)
-
-	m = (*ui.aircraftMarkers)["B77L"]
-	do = m.MarkerDrawOpts(dbgMarkerRotateAngle, 650, 25)
-	screen.DrawImage(m.Img, &do)
-	ebitenutil.DebugPrintAt(screen, "B77L", 650, 40)
-
-	m = (*ui.aircraftMarkers)["HAWK"]
-	do = m.MarkerDrawOpts(dbgMarkerRotateAngle, 700, 25)
-	screen.DrawImage(m.Img, &do)
-	ebitenutil.DebugPrintAt(screen, "HAWK", 700, 40)
-
-	m = (*ui.aircraftMarkers)["B788"]
-	do = m.MarkerDrawOpts(dbgMarkerRotateAngle, 750, 25)
-	screen.DrawImage(m.Img, &do)
-	ebitenutil.DebugPrintAt(screen, "B788", 750, 40)
-
-	m = (*ui.aircraftMarkers)["RV9"]
-	do = m.MarkerDrawOpts(dbgMarkerRotateAngle, 800, 25)
-	screen.DrawImage(m.Img, &do)
-	ebitenutil.DebugPrintAt(screen, "RV9", 800, 40)
-
-	m = (*ui.aircraftMarkers)["SW3"]
-	do = m.MarkerDrawOpts(dbgMarkerRotateAngle, 850, 25)
-	screen.DrawImage(m.Img, &do)
-	ebitenutil.DebugPrintAt(screen, "SW3", 850, 40)
-
-	m = (*ui.aircraftMarkers)["SW4"]
-	do = m.MarkerDrawOpts(dbgMarkerRotateAngle, 900, 25)
-	screen.DrawImage(m.Img, &do)
-	ebitenutil.DebugPrintAt(screen, "SW4", 900, 40)
-
-	m = (*ui.groundVehicleMarkers)["4WD"]
-	do = m.MarkerDrawOpts(dbgMarkerRotateAngle, 950, 25)
-	screen.DrawImage(m.Img, &do)
-	ebitenutil.DebugPrintAt(screen, "4WD", 950, 40)
-
-	m = (*ui.aircraftMarkers)["DA42"]
-	do = m.MarkerDrawOpts(dbgMarkerRotateAngle, 1000, 25)
-	screen.DrawImage(m.Img, &do)
-	ebitenutil.DebugPrintAt(screen, "DA42", 1000, 40)
-
-	m = (*ui.aircraftMarkers)["SONX"]
-	do = m.MarkerDrawOpts(dbgMarkerRotateAngle, 1050, 25)
-	screen.DrawImage(m.Img, &do)
-	ebitenutil.DebugPrintAt(screen, "SONX", 1050, 40)
-
-	m = (*ui.aircraftMarkers)["GLEX"]
-	do = m.MarkerDrawOpts(dbgMarkerRotateAngle, 1100, 25)
-	screen.DrawImage(m.Img, &do)
-	ebitenutil.DebugPrintAt(screen, "GLEX", 1100, 40)
-
-	m = (*ui.aircraftMarkers)["H25B"]
-	do = m.MarkerDrawOpts(dbgMarkerRotateAngle, 1150, 25)
-	screen.DrawImage(m.Img, &do)
-	ebitenutil.DebugPrintAt(screen, "H25B", 1150, 40)
-
-	m = (*ui.aircraftMarkers)["C182"]
-	do = m.MarkerDrawOpts(dbgMarkerRotateAngle, 1200, 25)
-	screen.DrawImage(m.Img, &do)
-	ebitenutil.DebugPrintAt(screen, "C182", 1200, 40)
-
-	m = (*ui.aircraftMarkers)["TWEN"]
-	do = m.MarkerDrawOpts(dbgMarkerRotateAngle, 1250, 25)
-	screen.DrawImage(m.Img, &do)
-	ebitenutil.DebugPrintAt(screen, "TWEN", 1250, 40)
+		}
+	}
 }
 
 func (ui *UserInterface) Draw(screen *ebiten.Image) {
 
 	mouseX, mouseY := ebiten.CursorPosition()
-	windowX, windowY := ui.slippymap.GetSize()
+	windowW, windowH := ebiten.WindowSize()
 
 	switch ui.getState() {
 
@@ -444,28 +392,25 @@ func (ui *UserInterface) Draw(screen *ebiten.Image) {
 		ebitenutil.DebugPrint(screen, "Loading...")
 
 	case STATE_RUN:
+
 		// draw map
-		ui.slippymap.Draw(screen)
+		ui.slippymap.Draw(screen, ui.debugShowMapTileXYZ)
 
 		// draw aircraft
 		mouseOverMarkerText := ui.drawAircraftMarkers(screen, mouseX, mouseY)
 
-		// draw altitude scale
+		// draw altitude scale at the bottom centre of map
 		altitudeScaleDio := &ebiten.DrawImageOptions{}
-		altitudeScaleDio.GeoM.Translate((float64(windowX)/2)-(float64(markers.AltitudeScale.Bounds().Max.X)/2), float64(windowY)-float64(markers.AltitudeScale.Bounds().Max.Y))
-		screen.DrawImage(markers.AltitudeScale, altitudeScaleDio)
+		altitudeScaleDio.GeoM.Translate((float64(windowW)/2)-(float64(ui.altitudeScale.Img.Bounds().Max.X)/2), float64(windowH)-float64(ui.altitudeScale.Img.Bounds().Max.Y))
+		screen.DrawImage(ui.altitudeScale.Img, altitudeScaleDio)
 
-		// draw osm attribution
-		attributionArea := ebiten.NewImage(100, 20)
-		attributionArea.Fill(color.Black)
-		attributionAreaDio := &ebiten.DrawImageOptions{}
-		attributionAreaDio.ColorM.Scale(1, 1, 1, 0.65)
-		attributionAreaDio.GeoM.Translate(float64(windowX-100), float64(windowY-20))
-		screen.DrawImage(attributionArea, attributionAreaDio)
-		ebitenutil.DebugPrintAt(screen, "© OpenStreetMap", windowX-96, windowY-18)
+		// draw OpenStreetMap attribution at the bottom right of map
+		mapAttributionDio := &ebiten.DrawImageOptions{}
+		mapAttributionDio.GeoM.Translate(float64(windowW)-float64(attribution.MapAttribution.Img.Bounds().Dx()), float64(windowH)-float64(attribution.MapAttribution.Img.Bounds().Dy()))
+		screen.DrawImage(attribution.MapAttribution.Img, mapAttributionDio)
 
 		// debugging: darken area with debug text
-		darkArea := ebiten.NewImage(windowWidth, 115)
+		darkArea := ebiten.NewImage(windowW, 115)
 		darkArea.Fill(color.Black)
 		darkAreaDio := &ebiten.DrawImageOptions{}
 		darkAreaDio.ColorM.Scale(1, 1, 1, 0.65)
@@ -508,6 +453,26 @@ func (ui *UserInterface) Draw(screen *ebiten.Image) {
 		dbgMouseOverMarkerText := fmt.Sprintf("Mouse over marker: %s", mouseOverMarkerText)
 		ebitenutil.DebugPrintAt(screen, dbgMouseOverMarkerText, 0, 90)
 
+	case STATE_DEBUG_MARKERS_STARTUP:
+		// debug mode: draw all the markers for testing and adjusting scale
+
+	case STATE_DEBUG_MARKERS_RUN:
+		// debug mode: draw all the markers for testing and adjusting scale
+		ui.debugDrawMarkers(screen, windowW, windowH)
+
+	case STATE_DEBUG_ALTITUDE_SCALE_STARTUP:
+		// debug mode: draw the altitude scale for testing
+
+	case STATE_DEBUG_ALTITUDE_SCALE_RUN:
+		// debug mode: draw the altitude scale for testing
+
+		// background fill
+		fillC := color.RGBA{R: 100, G: 100, B: 100, A: 255}
+		screen.Fill(fillC)
+
+		// draw altitude scale
+		screen.DrawImage(ui.altitudeScale.Img, nil)
+
 	default:
 		log.Fatal("Invalid state in ui.Draw!")
 	}
@@ -534,6 +499,8 @@ func failFatally(err error) {
 
 type runtimeConfiguration struct {
 	readsbAircraftProtobufUrl string
+	initalState               int
+	debugShowMapTileXYZ       bool
 }
 
 func processCommandLine() runtimeConfiguration {
@@ -544,6 +511,11 @@ func processCommandLine() runtimeConfiguration {
 
 	// readsb-protobuf aircraft.pb URL
 	readsbAircraftProtobufUrl := parser.String("", "aircraftpburl", &argparse.Options{Required: false, Help: "Uses readsb-protobuf aircraft.pb as a data source. Eg: 'http://1.2.3.4/data/aircraft.pb'"})
+
+	// debug options
+	debugDrawMarkers := parser.Flag("", "debugdrawmarkers", &argparse.Options{Required: false, Help: "Debug mode: show all aircraft markers"})
+	debugAltitudeScale := parser.Flag("", "debugaltitudescale", &argparse.Options{Required: false, Help: "Debug mode: show altitude scale"})
+	debugShowMapTileXYZ := parser.Flag("", "debugshowmaptilexyz", &argparse.Options{Required: false, Help: "Debug mode: show OSM map tile X/Y/zoom"})
 
 	// Parse input
 	err := parser.Parse(os.Args)
@@ -559,6 +531,18 @@ func processCommandLine() runtimeConfiguration {
 	// if --aircraftpburl set, add to runtime conf
 	if *readsbAircraftProtobufUrl != "" {
 		conf.readsbAircraftProtobufUrl = *readsbAircraftProtobufUrl
+	}
+
+	if *debugDrawMarkers {
+		conf.initalState = STATE_DEBUG_MARKERS_STARTUP
+	}
+
+	if *debugAltitudeScale {
+		conf.initalState = STATE_DEBUG_ALTITUDE_SCALE_STARTUP
+	}
+
+	if *debugShowMapTileXYZ {
+		conf.debugShowMapTileXYZ = true
 	}
 
 	return conf
@@ -577,8 +561,8 @@ func main() {
 	// determine starting window size
 	// 80% of fullscreen
 	screenWidth, screenHeight := ebiten.ScreenSizeInFullscreen()
-	windowWidth = int(float64(screenWidth) * INIT_WINDOW_SIZE)
-	windowHeight = int(float64(screenHeight) * INIT_WINDOW_SIZE)
+	windowWidth := int(float64(screenWidth) * INIT_WINDOW_SIZE)
+	windowHeight := int(float64(screenHeight) * INIT_WINDOW_SIZE)
 
 	// set up initial window
 	ebiten.SetWindowResizable(true)
@@ -591,16 +575,18 @@ func main() {
 	}
 
 	// if readsb aircraft.db datasource has been specified, initialise it
-	if conf.readsbAircraftProtobufUrl != "" {
+	if conf.readsbAircraftProtobufUrl != "" && conf.initalState == STATE_STARTUP {
 		log.Printf("Datasource: readsb-protobuf at url: %s", conf.readsbAircraftProtobufUrl)
 		go datasources.ReadsbProtobuf(conf.readsbAircraftProtobufUrl, adb)
 	}
 
 	// prepare "game"
 	ui := &UserInterface{
-		aircraftDb:   adb,
-		strokes:      map[*userinput.Stroke]struct{}{},
-		tileProvider: &tileProvider,
+		aircraftDb:          adb,
+		strokes:             map[*userinput.Stroke]struct{}{},
+		tileProvider:        &tileProvider,
+		state:               conf.initalState,
+		debugShowMapTileXYZ: conf.debugShowMapTileXYZ,
 	}
 
 	// In FPSModeVsyncOffMinimum, the game's Update and Draw are called only when
@@ -608,8 +594,10 @@ func main() {
 	// In FPSModeVsyncOffMinimum, TPS is SyncWithFPS no matter what TPS is specified at SetMaxTPS.
 	// ebiten.ScheduleFrame is called within SlippyMap.Update()
 	// Should we make .Update() return a boolean that determines whether we schedule a frame in this packages Draw() function?
-	ebiten.SetFPSMode(ebiten.FPSModeVsyncOffMinimum)
-	ebiten.SetMaxTPS(60)
+	if ui.state == STATE_STARTUP {
+		ebiten.SetFPSMode(ebiten.FPSModeVsyncOffMinimum)
+		ebiten.SetMaxTPS(60)
+	}
 
 	// run
 	defer endProgram()
