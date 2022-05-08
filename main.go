@@ -51,10 +51,9 @@ var (
 	windowHeight int
 
 	// Debugging
-	dbgMouseOverTileText  string
-	dbgMouseLatLongText   string
-	dbgMarkerRotateAngle  float64
-	dbgAltitudeScaleMutex sync.Mutex
+	dbgMouseOverTileText string
+	dbgMouseLatLongText  string
+	dbgMarkerRotateAngle float64
 )
 
 type UserInterface struct {
@@ -233,18 +232,13 @@ func (ui *UserInterface) Update() error {
 
 	case STATE_DEBUG_ALTITUDE_SCALE_STARTUP:
 		ebiten.SetWindowTitle("plane.watch - Debug Altitude Scale")
-		ebiten.SetFPSMode(ebiten.FPSModeVsyncOn)
-		ebiten.SetMaxTPS(60)
-		ebiten.SetScreenClearedEveryFrame(false)
 		ui.altitudeScale = altitude.NewAltitudeScale(float64(windowW))
 		ui.setState(STATE_DEBUG_ALTITUDE_SCALE_RUN)
 		log.Println("Debug mode: Altitude Scale")
 
 	case STATE_DEBUG_ALTITUDE_SCALE_RUN:
 		if windowW != int(ui.altitudeScale.Width) {
-			dbgAltitudeScaleMutex.Lock()
 			ui.altitudeScale = altitude.NewAltitudeScale(float64(windowW))
-			dbgAltitudeScaleMutex.Unlock()
 		}
 
 	default:
@@ -466,14 +460,12 @@ func (ui *UserInterface) Draw(screen *ebiten.Image) {
 
 	case STATE_DEBUG_ALTITUDE_SCALE_RUN:
 
+		// background fill
 		fillC := color.RGBA{R: 100, G: 100, B: 100, A: 255}
 		screen.Fill(fillC)
 
 		// draw altitude scale
-		// altitudeScaleDio := &ebiten.DrawImageOptions{}
-		dbgAltitudeScaleMutex.Lock()
 		screen.DrawImage(ui.altitudeScale.Img, nil)
-		dbgAltitudeScaleMutex.Unlock()
 
 	default:
 		log.Fatal("Invalid state in ui.Draw!")
