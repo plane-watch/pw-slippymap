@@ -119,29 +119,6 @@ func (adb *AircraftDB) SetPosition(icao int, lat, long float64, altBaro int) {
 	}
 }
 
-// func (adb *AircraftDB) SetLat(icao int, lat float64) {
-// 	adb.newAircraft(icao)
-// 	if adb.Aircraft[icao].Lat != lat {
-// 		defer ebiten.ScheduleFrame()
-// 		adb.Mutex.Lock()
-// 		defer adb.Mutex.Unlock()
-// 		// log.Printf("AircraftDB[%X]: Updated lat to: %f", icao, lat)
-// 		adb.Aircraft[icao].Lat = lat
-
-// 	}
-// }
-
-// func (adb *AircraftDB) SetLong(icao int, long float64) {
-// 	adb.newAircraft(icao)
-// 	if adb.Aircraft[icao].Long != long {
-// 		defer ebiten.ScheduleFrame()
-// 		adb.Mutex.Lock()
-// 		defer adb.Mutex.Unlock()
-// 		// log.Printf("AircraftDB[%X]: Updated long to: %f", icao, long)
-// 		adb.Aircraft[icao].Long = long
-// 	}
-// }
-
 func (adb *AircraftDB) SetTrack(icao int, track int) {
 	adb.newAircraft(icao)
 	if adb.Aircraft[icao].Track != track {
@@ -152,16 +129,6 @@ func (adb *AircraftDB) SetTrack(icao int, track int) {
 		adb.Aircraft[icao].Track = track
 	}
 }
-
-// func (adb *AircraftDB) SetAltBaro(icao int, altBaro int) {
-// 	adb.newAircraft(icao)
-// 	if adb.Aircraft[icao].AltBaro != altBaro {
-// 		defer ebiten.ScheduleFrame()
-// 		adb.Mutex.Lock()
-// 		defer adb.Mutex.Unlock()
-// 		adb.Aircraft[icao].AltBaro = altBaro
-// 	}
-// }
 
 func (adb *AircraftDB) SetCategory(icao int, category int) {
 	adb.newAircraft(icao)

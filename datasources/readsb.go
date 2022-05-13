@@ -141,9 +141,6 @@ func ReadsbProtobufAircraft(readsburl string, adb *AircraftDB) {
 		for _, a := range aircraftUpdate.GetAircraft() {
 			icao := int(a.GetAddr())
 			adb.SetCallsign(icao, a.GetFlight())
-			// adb.SetLat(icao, a.GetLat())
-			// adb.SetLong(icao, a.GetLon())
-			// adb.SetAltBaro(icao, int(a.GetAltBaro()))
 			adb.SetPosition(icao, a.GetLat(), a.GetLon(), int(a.GetAltBaro()))
 			adb.SetTrack(icao, int(a.GetTrack()))
 			adb.SetCategory(icao, int(a.GetCategory()))
@@ -151,17 +148,6 @@ func ReadsbProtobufAircraft(readsburl string, adb *AircraftDB) {
 			adb.SetAirGround(icao, a.GetAirGround())
 			adb.SetLastSeen(icao)
 		}
-
-		// Get aircraft history (for trails)
-		// TODO - aircraft.pb doesn't seem to have history, probably need history.pb...
-		// for _, h := range aircraftUpdate.GetHistory() {
-		// 	icao := int(h.GetAddr())
-		// 	lat := h.GetLat()
-		// 	long := h.GetLon()
-		// 	altBaro := h.GetAltBaro()
-		// 	fmt.Println(icao, lat, long, altBaro)
-
-		// }
 
 		// Wait until next update
 		time.Sleep(time.Millisecond * READSB_UPDATE_FREQUENCY)
