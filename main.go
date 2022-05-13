@@ -8,6 +8,7 @@ import (
 	"pw_slippymap/altitude"
 	"pw_slippymap/attribution"
 	"pw_slippymap/datasources"
+	"pw_slippymap/datasources/readsb_protobuf"
 	"pw_slippymap/markers"
 	"pw_slippymap/slippymap"
 	"pw_slippymap/userinput"
@@ -316,7 +317,7 @@ func (ui *UserInterface) drawAircraftMarkers(screen *ebiten.Image, mouseX, mouse
 			aircraftDrawOpts := aircraftMarker.MarkerDrawOpts(float64(v.Track), float64(aircraftX), float64(aircraftY))
 
 			// get fill colour from altitude
-			r, g, b := altitude.AltitudeToColour(float64(aircraftMap[k].AltBaro), aircraftMap[k].AirGround)
+			r, g, b, _ := altitude.AltitudeToColour(float64(aircraftMap[k].AltBaro), aircraftMap[k].AirGround)
 
 			// invert colours
 			r = 1 - r
@@ -346,24 +347,31 @@ func (ui *UserInterface) drawAircraftMarkers(screen *ebiten.Image, mouseX, mouse
 
 						// draw trails
 						// TODO: move to function
+						// TODO: have a layer/image for all trails, draw beneath aircraft markers
 						dc := gg.NewContext(ui.slippymap.GetSize())
 						first := true
 						ui.aircraftDb.Mutex.Lock()
+						var prevX, prevY int
 						for _, v := range ui.aircraftDb.Aircraft[k].History {
 							var x, y int
 							x, y, err = ui.slippymap.LatLongToPixel(v.Lat, v.Long)
 							if err == nil {
 								if first {
-									dc.MoveTo(float64(x), float64(y))
 									first = false
 								} else {
+									_, _, _, c := altitude.AltitudeToColour(float64(v.Alt), readsb_protobuf.AircraftMeta_AG_UNCERTAIN)
+									dc.MoveTo(float64(prevX), float64(prevY))
 									dc.LineTo(float64(x), float64(y))
+									dc.SetColor(c)
+									dc.SetLineWidth(3)
+									dc.Stroke()
 								}
+								prevX = x
+								prevY = y
 							}
 						}
-						ui.aircraftDb.Mutex.Unlock()
-						dc.SetLineWidth(3)
 						dc.StrokePreserve()
+						ui.aircraftDb.Mutex.Unlock()
 						screen.DrawImage(ebiten.NewImageFromImage(dc.Image()), nil)
 					}
 				}

@@ -103,7 +103,7 @@ func remap(x, inMin, inMax, outMin, outMax float64) float64 {
 	return (x-inMin)*(outMax-outMin)/(inMax-inMin) + outMin
 }
 
-func AltitudeToColour(alt float64, airground readsb_protobuf.AircraftMeta_AirGround) (r, g, b float64) {
+func AltitudeToColour(alt float64, airground readsb_protobuf.AircraftMeta_AirGround) (r, g, b float64, c color.Color) {
 	// return a colour based on an altitude (in feet)
 
 	if airground == readsb_protobuf.AircraftMeta_AG_GROUND {
@@ -128,9 +128,10 @@ func AltitudeToColour(alt float64, airground readsb_protobuf.AircraftMeta_AirGro
 		r = altitudeColourGrad.At(alt).R
 		g = altitudeColourGrad.At(alt).G
 		b = altitudeColourGrad.At(alt).B
+		c = altitudeColourGrad.At(alt)
 	}
 
-	return r, g, b
+	return r, g, b, c
 }
 
 func NewAltitudeScale(width float64) *AltitudeScale {
