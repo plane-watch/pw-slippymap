@@ -328,9 +328,6 @@ func (ui *UserInterface) drawAircraftMarkers(screen *ebiten.Image, mouseX, mouse
 			aircraftDrawOpts.ColorM.Translate(r, g, b, 0)
 			aircraftDrawOpts.ColorM.Invert()
 
-			// draw it
-			screen.DrawImage(aircraftMarker.Img, &aircraftDrawOpts)
-
 			// work out if mouse is over marker image
 			topLeftX := -aircraftMarker.CentreX + float64(aircraftX)
 			topLeftY := -aircraftMarker.CentreY + float64(aircraftY)
@@ -365,13 +362,16 @@ func (ui *UserInterface) drawAircraftMarkers(screen *ebiten.Image, mouseX, mouse
 							}
 						}
 						ui.aircraftDb.Mutex.Unlock()
-						dc.SetLineWidth(4)
+						dc.SetLineWidth(3)
 						dc.StrokePreserve()
 						screen.DrawImage(ebiten.NewImageFromImage(dc.Image()), nil)
-
 					}
 				}
 			}
+
+			// draw it
+			screen.DrawImage(aircraftMarker.Img, &aircraftDrawOpts)
+
 		}
 	}
 
