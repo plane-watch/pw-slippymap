@@ -498,9 +498,9 @@ func failFatally(err error) {
 }
 
 type runtimeConfiguration struct {
-	readsbAircraftProtobufUrl string
-	initalState               int
-	debugShowMapTileXYZ       bool
+	readsbProtobufUrl   string
+	initalState         int
+	debugShowMapTileXYZ bool
 }
 
 func processCommandLine() runtimeConfiguration {
@@ -510,7 +510,7 @@ func processCommandLine() runtimeConfiguration {
 	parser := argparse.NewParser("pw-slippymap", "front-end for plane.watch")
 
 	// readsb-protobuf aircraft.pb URL
-	readsbAircraftProtobufUrl := parser.String("", "aircraftpburl", &argparse.Options{Required: false, Help: "Uses readsb-protobuf aircraft.pb as a data source. Eg: 'http://1.2.3.4/data/aircraft.pb'"})
+	readsbProtobufUrl := parser.String("", "aircraftpburl", &argparse.Options{Required: false, Help: "Uses readsb-protobuf web interface as a data source. Eg: 'http://1.2.3.4/'"})
 
 	// debug options
 	debugDrawMarkers := parser.Flag("", "debugdrawmarkers", &argparse.Options{Required: false, Help: "Debug mode: show all aircraft markers"})
@@ -529,8 +529,8 @@ func processCommandLine() runtimeConfiguration {
 	conf := runtimeConfiguration{}
 
 	// if --aircraftpburl set, add to runtime conf
-	if *readsbAircraftProtobufUrl != "" {
-		conf.readsbAircraftProtobufUrl = *readsbAircraftProtobufUrl
+	if *readsbProtobufUrl != "" {
+		conf.readsbProtobufUrl = *readsbProtobufUrl
 	}
 
 	if *debugDrawMarkers {
@@ -554,9 +554,10 @@ func main() {
 	// process the command line
 	conf := processCommandLine()
 
+	log.Printf("readsb database version: %d", datasources.GetReadsbDBVersion())
+
 	// init aircraftdb
 	adb := datasources.NewAircraftDB(60)
-	log.Printf("readsb database version: %d", datasources.GetReadsbDBVersion())
 
 	// determine starting window size
 	// 80% of fullscreen
@@ -575,9 +576,9 @@ func main() {
 	}
 
 	// if readsb aircraft.db datasource has been specified, initialise it
-	if conf.readsbAircraftProtobufUrl != "" && conf.initalState == STATE_STARTUP {
-		log.Printf("Datasource: readsb-protobuf at url: %s", conf.readsbAircraftProtobufUrl)
-		go datasources.ReadsbProtobuf(conf.readsbAircraftProtobufUrl, adb)
+	if conf.readsbProtobufUrl != "" && conf.initalState == STATE_STARTUP {
+		log.Printf("Datasource: readsb-protobuf at url: %s", conf.readsbProtobufUrl)
+		go datasources.ReadsbProtobufAircraft(conf.readsbProtobufUrl, adb)
 	}
 
 	// prepare "game"
