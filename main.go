@@ -15,6 +15,7 @@ import (
 	"sync"
 
 	"github.com/akamensky/argparse"
+	"github.com/fogleman/gg"
 	"github.com/hajimehoshi/ebiten/v2"
 	"github.com/hajimehoshi/ebiten/v2/ebitenutil"
 	"github.com/hajimehoshi/ebiten/v2/inpututil"
@@ -342,7 +343,32 @@ func (ui *UserInterface) drawAircraftMarkers(screen *ebiten.Image, mouseX, mouse
 					pc := aircraftMarker.Img.At(mouseX-int(topLeftX), mouseY-int(topLeftY))
 					_, _, _, a := pc.RGBA()
 					if a != 0 {
+
+						// update mouseover text
 						mouseOverMarkerText = fmt.Sprintf("ICAO: %X, Callsign: %s, Type: %s, Category: %X, Alt: %d, Gs: %d, AirGround: %s", k, v.Callsign, v.AircraftType, v.Category, v.AltBaro, v.GroundSpeed, v.AirGround.String())
+
+						// draw trails
+						// TODO: move to function
+						dc := gg.NewContext(ui.slippymap.GetSize())
+						first := true
+						ui.aircraftDb.Mutex.Lock()
+						for _, v := range ui.aircraftDb.Aircraft[k].History {
+							var x, y int
+							x, y, err = ui.slippymap.LatLongToPixel(v.Lat, v.Long)
+							if err == nil {
+								if first {
+									dc.MoveTo(float64(x), float64(y))
+									first = false
+								} else {
+									dc.LineTo(float64(x), float64(y))
+								}
+							}
+						}
+						ui.aircraftDb.Mutex.Unlock()
+						dc.SetLineWidth(4)
+						dc.StrokePreserve()
+						screen.DrawImage(ebiten.NewImageFromImage(dc.Image()), nil)
+
 					}
 				}
 			}
