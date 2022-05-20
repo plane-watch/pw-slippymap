@@ -19,7 +19,7 @@ const (
 
 	// define min/max altitudes
 	ALTITUDE_MIN_FT = 0
-	ALTITUDE_MAX_FT = 40000
+	ALTITUDE_MAX_FT = 51000
 
 	ALTITUDESCALE_HEIGHT              = 30.0 // height in pixels
 	ALTITUDESCALE_COLOUR_BAR_HEIGHT   = 10.0 // height of colour bar
@@ -197,6 +197,8 @@ func NewAltitudeScale(width float64) *AltitudeScale {
 
 		// print text if it won't overlap previous + tick
 		if newX > prevX+prevRect.Dx()+10 && newX+newRect.Dx() <= int(width) {
+
+			fmt.Println(markerTxt, newX, newRect.Max.Y-newRect.Min.Y+2)
 
 			// draw text
 			text.Draw(output.Img, markerTxt, ff, newX, newRect.Max.Y-newRect.Min.Y+2, color.White)

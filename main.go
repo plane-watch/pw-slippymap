@@ -202,7 +202,7 @@ func (ui *UserInterface) Update() error {
 
 		log.Println("Starting UI")
 		ui.loadSprites()
-		ui.altitudeScale = altitude.NewAltitudeScale(600.0)
+		ui.altitudeScale = altitude.NewAltitudeScale(800.0)
 		ui.slippymap = slippymap.NewSlippyMap(windowW, windowH, INIT_ZOOM_LEVEL, INIT_CENTRE_LAT, INIT_CENTRE_LONG, *ui.tileProvider)
 		ui.setState(STATE_RUN)
 
