@@ -198,7 +198,7 @@ func NewAltitudeScale(width float64) *AltitudeScale {
 		// print text if it won't overlap previous + tick
 		if newX > prevX+prevRect.Dx()+10 && newX+newRect.Dx() <= int(width) {
 
-			fmt.Println(markerTxt, newX, newRect.Max.Y-newRect.Min.Y+2)
+			// fmt.Println(markerTxt, newX, newRect.Max.Y-newRect.Min.Y+2)
 
 			// draw text
 			text.Draw(output.Img, markerTxt, ff, newX, newRect.Max.Y-newRect.Min.Y+2, color.White)

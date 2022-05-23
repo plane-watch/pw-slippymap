@@ -202,7 +202,9 @@ func (ui *UserInterface) Update() error {
 
 		log.Println("Starting UI")
 		ui.loadSprites()
+		// fmt.Println("======== Start NewAltitudeScale ========")
 		ui.altitudeScale = altitude.NewAltitudeScale(800.0)
+		// fmt.Println("======== End NewAltitudeScale ========")
 		ui.slippymap = slippymap.NewSlippyMap(windowW, windowH, INIT_ZOOM_LEVEL, INIT_CENTRE_LAT, INIT_CENTRE_LONG, *ui.tileProvider)
 		ui.setState(STATE_RUN)
 
@@ -434,9 +436,11 @@ func (ui *UserInterface) Draw(screen *ebiten.Image) {
 		mouseOverMarkerText := ui.drawAircraftMarkers(screen, mouseX, mouseY)
 
 		// draw altitude scale at the bottom centre of map
+		// fmt.Println("======== Start Draw Alt Scale ========")
 		altitudeScaleDio := &ebiten.DrawImageOptions{}
 		altitudeScaleDio.GeoM.Translate((float64(windowW)/2)-(float64(ui.altitudeScale.Img.Bounds().Max.X)/2), float64(windowH)-float64(ui.altitudeScale.Img.Bounds().Max.Y))
 		screen.DrawImage(ui.altitudeScale.Img, altitudeScaleDio)
+		// fmt.Println("======== End Draw Alt Scale ========")
 
 		// draw OpenStreetMap attribution at the bottom right of map
 		mapAttributionDio := &ebiten.DrawImageOptions{}
